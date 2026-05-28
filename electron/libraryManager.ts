@@ -1,7 +1,8 @@
 import fs from "fs";
-import { dialog,app } from "electron";
-import { shell } from "electron"; 
+import { dialog, app } from "electron";
+import { shell } from "electron";
 import path from "path";
+
 const userDataPath = app.getPath('userData');
 const libraryPath = path.join(userDataPath, "user-library.json");
 
@@ -22,28 +23,34 @@ function saveLibrary(library: any[]): void {
 }
 
 /**
- * Ouvre un dialogue de sélection de fichier exécutable et ajoute le jeu
- * à la bibliothèque s'il n'y est pas déjà (dédoublonnage par chemin).
+ * Ouvre un dialogue de sélection de fichier exécutable, extrait l'icône du .exe
+ * sous forme de data URL, et ajoute le jeu à la bibliothèque s'il n'y est pas déjà.
  */
 export function addGame(): Promise<void> {
     return dialog.showOpenDialog({
-            title: 'Sélectionner le fichier exécutable du jeu',
-            filters: [
-                { name: 'Fichiers exécutables', extensions: ['exe', 'app', 'sh'] },
-            ],
-            properties: ['openFile'],
-        }).then((value) => {
+        title: 'Sélectionner le fichier exécutable du jeu',
+        filters: [
+            { name: 'Fichiers exécutables', extensions: ['exe', 'app', 'sh'] },
+        ],
+        properties: ['openFile'],
+    }).then((value) => {
+        if (value.canceled) return;
+
+        const filePath = value.filePaths[0];
+
+        return app.getFileIcon(filePath, { size: 'large' }).then((nativeIcon) => {
+            const extractedGame = {
+                title: extractGameTitle(filePath) ?? path.basename(filePath, path.extname(filePath)),
+                path: filePath,
+                gameIcon: nativeIcon.toDataURL(),
+                lastLaunched: null as string | null,
+            };
+
             const lib = loadLibrary();
-            if (!value.canceled) {
-                const filePath = value.filePaths[0];
-                const extractedGame = {
-                    title: extractGameTitle(filePath) ?? path.basename(filePath, path.extname(filePath)),
-                    path: filePath,
-                }
-                addGameIfUnique(lib, extractedGame);
-            }
+            addGameIfUnique(lib, extractedGame);
             saveLibrary(lib);
         });
+    });
 }
 
 function addGameIfUnique(library: any[], game: any) {
@@ -55,11 +62,11 @@ function addGameIfUnique(library: any[], game: any) {
 /**
  * Supprime le jeu correspondant au chemin donné de la bibliothèque.
  */
-export function deleteGame(path: string): Promise<void> {
+export function deleteGame(gamePath: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         try {
             const lib = loadLibrary();
-            saveLibrary(lib.filter((game) => game.path !== path));
+            saveLibrary(lib.filter((game) => game.path !== gamePath));
             resolve();
         } catch (error) {
             reject(error);
@@ -68,11 +75,18 @@ export function deleteGame(path: string): Promise<void> {
 }
 
 /**
- * Lance l'exécutable du jeu via le shell du système d'exploitation.
+ * Lance l'exécutable du jeu et met à jour lastLaunched dans la bibliothèque.
  */
-export function launchGame(exePath: string) {
-    shell.openPath(exePath);
-};
+export function launchGame(exePath: string): Promise<void> {
+    return shell.openPath(exePath).then(() => {
+        const lib = loadLibrary();
+        const game = lib.find(g => g.path === exePath);
+        if (game) {
+            game.lastLaunched = new Date().toISOString();
+            saveLibrary(lib);
+        }
+    });
+}
 
 /**
  * Tente de déduire le titre du jeu à partir du chemin de l'exécutable

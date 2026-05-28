@@ -10,13 +10,15 @@
           class="pa-3"
         >
           <v-card class="game-card">
-            <!-- Image du jeu -->
-            <v-img
-              :src="game.icon || '/assets/default-cover.jpg'"
-              class="game-cover"
-              aspect-ratio="3/4"
-              cover
-            ></v-img>
+            <!-- Icône du jeu -->
+            <div class="game-icon-wrapper">
+              <v-img
+                :src="game.gameIcon || '/assets/default-cover.jpg'"
+                width="64"
+                height="64"
+                contain
+              ></v-img>
+            </div>
 
             <!-- Titre du jeu -->
             <v-card-title class="game-title">
