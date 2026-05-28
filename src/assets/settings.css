@@ -1,0 +1,16 @@
+.tabs-container {
+  padding-left: 25px;
+  padding-top: 25px;
+}
+
+.tabs-window-flex {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.exit-fab {
+  position: fixed;
+  right: 28px;
+  top: 28px;
+  z-index: 100;
+}
