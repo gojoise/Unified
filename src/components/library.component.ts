@@ -3,7 +3,7 @@ import { useLibrary } from '../services/library.service'
 
 export default {
   setup() {
-    const { library, loading, load, add, launch, remove } = useLibrary();
+    const { sortedLibrary, loading, load, add, launch, remove } = useLibrary();
 
     onMounted(() => {
       load();
@@ -15,7 +15,7 @@ export default {
     ]);
 
     return {
-      library,
+      library: sortedLibrary,
       loadingGames: loading,
       options,
       onAddGame: add,

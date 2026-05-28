@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useNotification } from './notification.service'
 
 // Wrappers renderer autour des méthodes IPC exposées par electron/preload.ts.
@@ -76,5 +76,9 @@ export function useLibrary() {
     }
   }
 
-  return { library, loading, load, add, launch, remove }
+  const sortedLibrary = computed(() =>
+    [...library.value].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
+  )
+
+  return { library, sortedLibrary, loading, load, add, launch, remove }
 }
