@@ -40,7 +40,7 @@ export function addGame(): Promise<void> {
 
         return app.getFileIcon(filePath, { size: 'large' }).then((nativeIcon) => {
             const extractedGame = {
-                title: extractGameTitle(filePath) ?? path.basename(filePath, path.extname(filePath)),
+                title: extractGameTitle(filePath),
                 path: filePath,
                 gameIcon: nativeIcon.toDataURL(),
                 lastLaunched: null as string | null,
@@ -88,28 +88,93 @@ export function launchGame(exePath: string): Promise<void> {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Détection du titre — 4 couches, de la plus à la moins fiable
+// ---------------------------------------------------------------------------
+
 /**
- * Tente de déduire le titre du jeu à partir du chemin de l'exécutable
- * en remontant au dossier parent (ou grand-parent si le parent est "bin").
- * Retourne null si le chemin est trop court pour extraire un nom significatif.
+ * Détermine le titre d'un jeu depuis son chemin d'exécutable.
+ * Essaie successivement 4 stratégies et retourne la première qui aboutit.
  */
-function extractGameTitle(exePath: string): string | null {
-    const parts = path.normalize(exePath).split(path.sep).filter(part => part !== '');
+function extractGameTitle(exePath: string): string {
+    return getGogTitle(exePath)
+        ?? getSteamTitle(exePath)
+        ?? getFolderTitle(exePath)
+        ?? normalizeTitle(path.basename(exePath, path.extname(exePath)));
+}
 
-    if (parts.length < 2) {
+
+/**
+ * Couche 2a — cherche un fichier goggame-*.info dans le dossier du .exe
+ * et lit le champ "name" (JSON natif, très fiable).
+ */
+function getGogTitle(exePath: string): string | null {
+    try {
+        const dir = path.dirname(exePath);
+        const gogFile = fs.readdirSync(dir).find(f => /^goggame-\d+\.info$/.test(f));
+        if (!gogFile) return null;
+        const data = JSON.parse(fs.readFileSync(path.join(dir, gogFile), 'utf-8'));
+        return data.name || null;
+    } catch {
         return null;
     }
+}
 
+/**
+ * Couche 2b — remonte jusqu'au dossier steamapps/ dans l'arborescence,
+ * trouve l'appmanifest_*.acf correspondant et lit le champ "name".
+ */
+function getSteamTitle(exePath: string): string | null {
+    try {
+        const parts = path.normalize(exePath).split(path.sep);
+        const steamappsIdx = parts.findIndex(p => p.toLowerCase() === 'steamapps');
+        if (steamappsIdx === -1) return null;
+
+        const steamappsDir = parts.slice(0, steamappsIdx + 1).join(path.sep);
+        const commonIdx = parts.findIndex((p, i) => i > steamappsIdx && p.toLowerCase() === 'common');
+        if (commonIdx === -1) return null;
+
+        const gameDir = parts[commonIdx + 1];
+        const acfFiles = fs.readdirSync(steamappsDir).filter(f => /^appmanifest_\d+\.acf$/.test(f));
+
+        for (const acfFile of acfFiles) {
+            const content = fs.readFileSync(path.join(steamappsDir, acfFile), 'utf-8');
+            const installDirMatch = content.match(/"installdir"\s+"([^"]+)"/);
+            if (installDirMatch?.[1].toLowerCase() === gameDir.toLowerCase()) {
+                const nameMatch = content.match(/"name"\s+"([^"]+)"/);
+                return nameMatch?.[1] ?? null;
+            }
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Couche 3 — remonte au dossier parent du .exe (ou grand-parent si "dosser technique") et prend son nom,
+ * et normalise le nom obtenu.
+ */
+function getFolderTitle(exePath: string): string | null {
+    const parts = path.normalize(exePath).split(path.sep).filter(p => p !== '');
+    if (parts.length < 2) return null;
+
+    const TECHNICAL_DIRS = ['bin', 'win', 'win32', 'win64', 'x64', 'x86', 'binaries'];
     let parentIndex = parts.length - 2;
+    if (TECHNICAL_DIRS.some(d => parts[parentIndex].toLowerCase() === d)) parentIndex--;
+    if (parentIndex < 0) return null;
 
-    // Remonter d'un niveau si le dossier parent est un répertoire "bin"
-    if (parts[parentIndex].toLowerCase().includes('bin')) {
-        parentIndex--;
-    }
+    return normalizeTitle(parts[parentIndex]) || null;
+}
 
-    if (parentIndex < 0) {
-        return null;
-    }
-
-    return parts[parentIndex];
+/**
+ * Normalise un nom brut en titre lisible :
+ * remplace les séparateurs (. _) par des espaces et retire les numéros de version.
+ */
+function normalizeTitle(raw: string): string {
+    return raw
+        .replace(/[._]/g, ' ')
+        .replace(/\bv?\d+(\.\d+)+\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }

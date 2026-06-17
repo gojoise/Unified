@@ -9,11 +9,15 @@ const settingsPath = path.join(userDataPath, "settings.json");
  */
 export function initializeSettingsDefaults(): Setting[] {
   const defaults: Setting[] = [
-    new Setting('enableNotifications', 'Activer les notifications', true),
-    new Setting('enableAutoUpdate', 'Activer les mises à jour automatiques', false),
-    new Setting('launchAtWindowsBoot', 'Lancer au démarrage de Windows', true),
-    new Setting('enableDarkTheme', 'Thème sombre', false),
-    new Setting('searchLocations', 'Emplacements de recherche', []),
+    new Setting('enableNotifications',  'Activer les notifications',                    true),
+    new Setting('enableAutoUpdate',     'Activer les mises à jour automatiques',         false),
+    new Setting('launchAtWindowsBoot',  'Lancer au démarrage de Windows',               true),
+    new Setting('enableDarkTheme',      'Thème sombre',                                 false),
+    new Setting('searchLocations',      'Emplacements de recherche',                    []),
+    new Setting('confirmBeforeDelete',  'Confirmer avant suppression',                  false),
+    new Setting('autoScan',             'Scan automatique des emplacements',            false),
+    new Setting('minimizeToTray',       'Minimiser dans le tray au lieu de fermer',     false),
+    new Setting('gameStartBehavior',    'Comportement au lancement d\'un jeu',          'nothing'),
   ];
 
   try {

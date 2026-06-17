@@ -11,6 +11,13 @@ interface NotificationState {
 
 // Singleton au niveau du module : tous les appels à useNotification() partagent le même état.
 // Cela garantit qu'une seule snackbar est affichée à la fois dans toute l'application.
+let notificationsEnabled = true
+
+/** Appelé par settings.component au chargement et à chaque changement du toggle. */
+export function setNotificationsEnabled(value: boolean) {
+  notificationsEnabled = value
+}
+
 const state = reactive<NotificationState>({
   visible: false,
   message: '',
@@ -40,6 +47,7 @@ const typeConfig: Record<NotificationType, { color: string; icon: string }> = {
  */
 export function useNotification() {
   const notify = (message: string, type: NotificationType = 'info', timeout = 4000) => {
+    if (!notificationsEnabled) return
     state.message = message;
     state.type = type;
     state.timeout = timeout;

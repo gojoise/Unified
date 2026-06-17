@@ -6,6 +6,8 @@ import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 import '@mdi/font/css/materialdesignicons.css'; // Ensure you are using css-loader
 
+import { initSettings } from './services/settings.service';
+
 // Components
 import Library from './components/library.vue';
 import Settings from './components/settings.vue';
@@ -41,9 +43,10 @@ const app = createApp(Unified);
 app.use(vuetify);
 app.use(router);
 
-app.mount('#app').$nextTick(() => {
-  // Use contextBridge
-  window.ipcRenderer.on('main-process-message', (_event: any, message: any) => {
-    console.log(message);
+initSettings().then(() => {
+  app.mount('#app').$nextTick(() => {
+    window.ipcRenderer.on('main-process-message', (_event: any, message: any) => {
+      console.log(message);
+    });
   });
 });

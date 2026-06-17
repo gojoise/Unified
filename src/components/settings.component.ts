@@ -1,82 +1,61 @@
-import { ref, onMounted, watch, toRaw } from 'vue'
-import { loadSettings, saveSettingValue, addSearchLocation } from '../services/settings.service'
+import { ref, watch, toRaw } from 'vue'
+import { useSettingsStore, saveSettingValue, addSearchLocation } from '../services/settings.service'
 import { useNotification } from '../services/notification.service'
+import { type AppSettings, type GameStartBehavior, SETTINGS_LABELS } from '../types/settings.types'
 
 export default {
   setup() {
-    const { notifyWarning, notifyError } = useNotification()
+    const { notifySuccess, notifyError } = useNotification()
     const tab = ref('option-1')
     const hoveredIndex = ref<number | null>(null)
+    const settings = useSettingsStore()
 
-    
-    const settings = ref<any | null>(null)
-    settings.value = {} // Initialisation pour éviter les erreurs d'accès aux propriétés
+    const watchKey = (key: keyof AppSettings) =>
+      watch(() => settings[key], async v => {
+        await saveSettingValue(key, v)
+        notifySuccess(`Paramètre "${SETTINGS_LABELS[key]}" enregistré`)
+      })
 
-    const applyLoaded = (loaded: any[]) => {
-      if (!settings.value) settings.value = {}
-      const map = new Map(loaded.map((s: any) => [s.code, s.value]))
-      if (map.has('enableNotifications')) settings.value.enableNotifications = map.get('enableNotifications')
-      if (map.has('enableAutoUpdate')) settings.value.enableAutoUpdate = map.get('enableAutoUpdate')
-      if (map.has('launchAtWindowsBoot')) settings.value.launchAtWindowsBoot = map.get('launchAtWindowsBoot')
-      if (map.has('enableDarkTheme')) settings.value.enableDarkTheme = map.get('enableDarkTheme')
-      const locs = map.get('searchLocations')
-      settings.value.searchLocations = Array.isArray(locs) ? locs : (settings.value.searchLocations || [])
-    }
-
-    const load = async () => {
-      try {
-        const loaded = await loadSettings()
-        applyLoaded(loaded || [])
-      } catch (e) {
-        notifyWarning('Impossible de charger les paramètres')
-      }
-    }
-
-    onMounted(() => {
-      load()
-    })
-
-    watch(
-      () => settings.value.enableNotifications,
-      (v) => saveSettingValue('enableNotifications', v)
-    )
-    watch(
-      () => settings.value.enableAutoUpdate,
-      (v) => saveSettingValue('enableAutoUpdate', v)
-    )
-    watch(
-      () => settings.value.launchAtWindowsBoot,
-      (v) => saveSettingValue('launchAtWindowsBoot', v)
-    )
-    watch(
-      () => settings.value.enableDarkTheme,
-      (v) => saveSettingValue('enableDarkTheme', v)
-    )
+    watchKey('enableNotifications')
+    watchKey('enableAutoUpdate')
+    watchKey('launchAtWindowsBoot')
+    watchKey('enableDarkTheme')
+    watchKey('confirmBeforeDelete')
+    watchKey('autoScan')
+    watchKey('minimizeToTray')
+    watchKey('gameStartBehavior')
 
     const onAddLocation = async () => {
       try {
         const chosen = await addSearchLocation()
         if (chosen) {
-          if (!settings.value) settings.value = {}
-          if (!Array.isArray(settings.value.searchLocations)) settings.value.searchLocations = []
-          settings.value.searchLocations.push(chosen)
-          await saveSettingValue('searchLocations', toRaw(settings.value.searchLocations))
+          settings.searchLocations.push(chosen)
+          await saveSettingValue('searchLocations', toRaw(settings.searchLocations))
+          notifySuccess('Emplacement ajouté')
         }
-      } catch (e) {
+      } catch {
         notifyError("Impossible d'ajouter l'emplacement de recherche")
       }
     }
 
     const onDeleteLocation = async (index: number) => {
-      if (!settings.value || !Array.isArray(settings.value.searchLocations)) return
-      settings.value.searchLocations.splice(index, 1)
-      await saveSettingValue('searchLocations', toRaw(settings.value.searchLocations))
+      settings.searchLocations.splice(index, 1)
+      await saveSettingValue('searchLocations', toRaw(settings.searchLocations))
+      notifySuccess('Emplacement supprimé')
     }
+
+const gameStartBehaviorOptions: { title: string; value: GameStartBehavior }[] = [
+      { title: 'Ne rien faire',           value: 'nothing'      },
+      { title: "Réduire l'application",   value: 'minimize'     },
+      { title: 'Fermer dans le tray',     value: 'close-to-tray'},
+      { title: "Fermer l'application",    value: 'close'        },
+    ]
 
     return {
       tab,
       settings,
       hoveredIndex,
+      gameStartBehaviorOptions,
       onAddLocation,
       onDeleteLocation,
     }
