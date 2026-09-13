@@ -25,13 +25,35 @@
 
 TODO LIST :
 
+#### Bibliothèque
+- [x] Tri alphabétique de la bibliothèque
+- [ ] Barre de recherche / filtre par nom
+- [ ] Tri par critères multiples (nom, dernier lancement, temps de jeu, date d'ajout)
+- [ ] Vue liste vs vue grille (toggle)
+- [ ] Zoom sur la grille (taille des cartes réglable)
+- [ ] Jeux favoris / épinglés en haut
+- [ ] Option pour ouvrir le dossier du jeu
+
+#### Métadonnées des jeux
+- [x] Métadonnées de base des jeux (icône, date de dernier lancement)
+- [ ] Nombre de lancements
+- [ ] Suivi du temps de jeu (compteur par session)
+- [ ] Améliorer l'affichage des jeux (vraie cover art)
+
+#### Détection des jeux
+- [ ] Améliorer la détection manuelle
+- [ ] Détection semi-auto (recherche dans les dossiers définis dans les paramètres)
+- [ ] Détection automatique des jeux
+
+#### Paramètres
+- [ ] Thème clair/sombre
+- [ ] Démarrage automatique avec Windows
+- [ ] Réduction dans la barre système (system tray)
+
+#### Notifications
 - [x] Utiliser un service de messages pour afficher des notifications
 - [x] Notifier les erreurs via le service de notifications
-- [x] Tri alphabétique de la bibliothèque
-- [x] Métadonnées de base des jeux (icône, date de dernier lancement)
-- [ ] Améliorer l'affichage des jeux (vraie cover art)
+
+#### Interface
+- [ ] Wizard d'initialisation au premier lancement d'Unified
 - [ ] Bouton aide
-- [ ] Thème clair/sombre
-- [ ] Améliorer la détection manuelle
-- [ ] Détection semi-auto
-- [ ] Détection automatique des jeux
