@@ -2,6 +2,7 @@ import { app, BrowserWindow,globalShortcut, Tray, Menu,shell,ipcMain } from 'ele
 import { fileURLToPath } from 'node:url'
 import { addGame,deleteGame,launchGame,loadLibrary } from './libraryManager'
 import { loadSettings, saveSettingValue, addSearchLocation, getSettingValue } from './settings'
+import { loadWindowState, trackWindowState, MIN_WINDOW_SIZE } from './windowState'
 import path from 'node:path'
 
 
@@ -19,13 +20,29 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null
 
 function createWindow() {
+  // Géométrie de la session précédente, ou 1280x720 (16/9) au premier lancement.
+  const windowState = loadWindowState()
+
   win = new BrowserWindow({
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    minWidth: MIN_WINDOW_SIZE.width,
+    minHeight: MIN_WINDOW_SIZE.height,
+    // La fenêtre n'est affichée qu'une fois le rendu prêt : évite le flash blanc
+    // et le saut visuel quand on restaure l'état maximisé.
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
        nodeIntegration: false,
        contextIsolation: true,
     },
   })
+
+  if (windowState.maximized) win.maximize()
+  win.once('ready-to-show', () => win?.show())
+  trackWindowState(win)
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)

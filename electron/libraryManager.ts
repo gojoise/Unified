@@ -152,17 +152,65 @@ function getSteamTitle(exePath: string): string | null {
 }
 
 /**
- * Couche 3 — remonte au dossier parent du .exe (ou grand-parent si "dosser technique") et prend son nom,
- * et normalise le nom obtenu.
+ * Dossiers « techniques » : ils contiennent le .exe mais ne portent jamais le nom
+ * du jeu. Comparés en minuscules, séparateurs retirés, et avec un éventuel suffixe
+ * d'architecture ignoré — ce qui couvre bin, Bin32, Win64, Binaries64, x86_64...
+ */
+const TECHNICAL_DIRS = new Set([
+    'bin', 'binary', 'binaries', 'exe', 'exes', 'executable', 'executables',
+    'win', 'windows', 'x86', 'x64', 'x8664', 'amd64', 'ia32', 'arm', 'arm64',
+    'release', 'debug', 'retail', 'shipping', 'build', 'builds', 'dist', 'native',
+    'app', 'application', 'client', 'launcher', 'game', 'games', 'program', 'programs',
+    'data', 'system', 'engine', 'redist', 'redistributable', 'runtime', 'support',
+]);
+
+/**
+ * Dossiers « conteneurs » : racines d'installation ou de plateforme. Si on remonte
+ * jusqu'à l'un d'eux, c'est qu'il n'y a plus de nom de jeu exploitable dans le
+ * chemin — le nom du .exe reste alors le meilleur candidat.
+ */
+const CONTAINER_DIRS = new Set([
+    'programfiles', 'programfilesx86', 'programdata', 'users', 'desktop', 'downloads',
+    'documents', 'steam', 'steamapps', 'common', 'steamlibrary', 'gog', 'goggalaxy',
+    'epicgames', 'epicgameslauncher', 'origin', 'eagames', 'ea', 'ubisoft',
+    'ubisoftgamelauncher', 'battlenet', 'xboxgames', 'itchio', 'emulation', 'roms',
+]);
+
+/** Normalise un nom de dossier pour la comparaison (casse et séparateurs ignorés). */
+function canonicalizeDirName(name: string): string {
+    return name.toLowerCase().replace(/[\s._\-()[\]]/g, '');
+}
+
+/** Vrai si le dossier est un dossier technique, suffixe d'architecture inclus. */
+function isTechnicalDir(name: string): boolean {
+    const canonical = canonicalizeDirName(name);
+    if (canonical === '') return true;
+    if (TECHNICAL_DIRS.has(canonical)) return true;
+
+    const withoutArch = canonical.replace(/(?:x?(?:32|64)|32bit|64bit|bit)$/, '');
+    return withoutArch !== canonical && withoutArch !== '' && TECHNICAL_DIRS.has(withoutArch);
+}
+
+/** Vrai si le segment est une racine de volume ("C:", partage UNC) et non un dossier. */
+function isPathRoot(segment: string): boolean {
+    return segment === '' || /^[a-z]:$/i.test(segment);
+}
+
+/**
+ * Couche 3 — remonte au premier dossier parent du .exe qui ne soit pas un dossier
+ * technique (bin, Bin32, Binaries/Win64, Release...) et prend son nom normalisé.
+ * Retourne null si on atteint la racine du volume ou un dossier conteneur.
  */
 function getFolderTitle(exePath: string): string | null {
-    const parts = path.normalize(exePath).split(path.sep).filter(p => p !== '');
-    if (parts.length < 2) return null;
-
-    const TECHNICAL_DIRS = ['bin', 'win', 'win32', 'win64', 'x64', 'x86', 'binaries'];
+    const parts = path.normalize(exePath).split(path.sep);
+    // Le dernier segment est le .exe lui-même : on part de son dossier parent.
     let parentIndex = parts.length - 2;
-    if (TECHNICAL_DIRS.some(d => parts[parentIndex].toLowerCase() === d)) parentIndex--;
-    if (parentIndex < 0) return null;
+
+    while (parentIndex >= 0 && !isPathRoot(parts[parentIndex]) && isTechnicalDir(parts[parentIndex])) {
+        parentIndex--;
+    }
+    if (parentIndex < 0 || isPathRoot(parts[parentIndex])) return null;
+    if (CONTAINER_DIRS.has(canonicalizeDirName(parts[parentIndex]))) return null;
 
     return normalizeTitle(parts[parentIndex]) || null;
 }
