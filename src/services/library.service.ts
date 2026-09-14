@@ -18,6 +18,12 @@ export async function deleteGame(path: string): Promise<void> {
   return window.ipcRenderer.deleteGame(path)
 }
 
+// Singleton au niveau du module : la grille et le dialogue de détection
+// semi-automatique partagent la même liste, donc un ajout par scan rafraîchit
+// la bibliothèque sans que les deux composants aient à se connaître.
+const library = ref<any[]>([])
+const loading = ref(new Map<string, boolean>())
+
 /**
  * Composable gérant la bibliothèque de jeux côté renderer.
  *
@@ -29,8 +35,6 @@ export async function deleteGame(path: string): Promise<void> {
  * Actions : `load`, `add`, `launch`, `remove`
  */
 export function useLibrary() {
-  const library = ref<any[]>([])
-  const loading = ref(new Map<string, boolean>())
   const { notifySuccess, notifyError, notifyWarning } = useNotification()
 
   const load = async () => {

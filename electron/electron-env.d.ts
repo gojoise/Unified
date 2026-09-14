@@ -31,6 +31,13 @@ interface IpcRendererWithCustomMethods extends import('electron').IpcRenderer {
   deleteGame: (path: string) => Promise<any>;
   loadLibrary: () => Promise<any[]>;
   launchGame: (path: string) => Promise<void>;
+  addGames: (selections: { path: string; title?: string; gameIcon?: string }[]) => Promise<number>;
+  scanLocations: (locations?: string[]) => Promise<import('./gameScanner').ScanCandidate[]>;
+  abortScan: () => Promise<void>;
+  extractExeIcon: (exePath: string) => Promise<string>;
+  revealInExplorer: (target: string) => Promise<void>;
+  onScanProgress: (callback: (progress: import('./gameScanner').ScanProgress) => void) => () => void;
+  onAutoScanResult: (callback: (candidates: import('./gameScanner').ScanCandidate[]) => void) => () => void;
   loadSettings: () => Promise<any[]>;
   saveSettingValue: (code: string, value: any) => Promise<void>;
   addSearchLocation: () => Promise<string | null>;

@@ -2,11 +2,18 @@ import { reactive } from 'vue';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
+/** Bouton optionnel affiché dans la snackbar (ex. « Voir » après un scan au démarrage). */
+export interface NotificationAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface NotificationState {
   visible: boolean;
   message: string;
   type: NotificationType;
   timeout: number;
+  action: NotificationAction | null;
 }
 
 // Singleton au niveau du module : tous les appels à useNotification() partagent le même état.
@@ -23,6 +30,7 @@ const state = reactive<NotificationState>({
   message: '',
   type: 'info',
   timeout: 4000,
+  action: null,
 });
 
 /** Couleur Vuetify et icône MDI associées à chaque type de notification. */
@@ -46,12 +54,24 @@ const typeConfig: Record<NotificationType, { color: string; icon: string }> = {
  * Les autres composants/services utilisent uniquement les helpers `notify*`.
  */
 export function useNotification() {
-  const notify = (message: string, type: NotificationType = 'info', timeout = 4000) => {
+  const notify = (
+    message: string,
+    type: NotificationType = 'info',
+    timeout = 4000,
+    action: NotificationAction | null = null,
+  ) => {
     if (!notificationsEnabled) return
     state.message = message;
     state.type = type;
     state.timeout = timeout;
+    state.action = action;
     state.visible = true;
+  };
+
+  /** Déclenche l'action de la snackbar puis la referme. */
+  const runAction = () => {
+    state.action?.onClick();
+    state.visible = false;
   };
 
   const close = () => {
@@ -63,6 +83,7 @@ export function useNotification() {
     typeConfig,
     notify,
     close,
+    runAction,
     notifyInfo:    (msg: string, timeout?: number) => notify(msg, 'info',    timeout),
     notifySuccess: (msg: string, timeout?: number) => notify(msg, 'success', timeout),
     notifyWarning: (msg: string, timeout?: number) => notify(msg, 'warning', timeout),

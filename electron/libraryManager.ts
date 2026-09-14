@@ -3,13 +3,21 @@ import { dialog, app } from "electron";
 import { shell } from "electron";
 import path from "path";
 
+/** Entrée persistée dans user-library.json. */
+export interface GameEntry {
+    title: string;
+    path: string;
+    gameIcon: string;
+    lastLaunched: string | null;
+}
+
 const userDataPath = app.getPath('userData');
 const libraryPath = path.join(userDataPath, "user-library.json");
 
 /**
  * Charge la bibliothèque depuis le JSON ou crée le fichier s'il n'existe pas encore.
  */
-export function loadLibrary(): any[] {
+export function loadLibrary(): GameEntry[] {
     if (fs.existsSync(libraryPath)) {
         return JSON.parse(fs.readFileSync(libraryPath, "utf-8"));
     } else {
@@ -18,8 +26,40 @@ export function loadLibrary(): any[] {
     return [];
 };
 
-function saveLibrary(library: any[]): void {
+function saveLibrary(library: GameEntry[]): void {
     fs.writeFileSync(libraryPath, JSON.stringify(library, null, 2), "utf-8");
+}
+
+/**
+ * Icône d'un exécutable, en data URL. Retourne une chaîne vide si le .exe n'en
+ * embarque pas ou n'est pas lisible — l'appelant retombe alors sur la vignette
+ * par défaut plutôt que d'échouer.
+ */
+export function extractExeIcon(exePath: string): Promise<string> {
+    return app.getFileIcon(exePath, { size: 'large' })
+        .then(nativeIcon => nativeIcon.toDataURL())
+        .catch(() => '');
+}
+
+/**
+ * Construit une entrée de bibliothèque à partir d'un chemin d'exécutable.
+ * Commun à l'ajout manuel et au scan semi-automatique : extraction de l'icône
+ * depuis le .exe et détection du titre.
+ */
+export async function createGameEntry(
+    exePath: string,
+    forcedTitle?: string,
+    forcedIcon?: string,
+): Promise<GameEntry> {
+    // Les jeux Xbox n'embarquent pas leur icône dans le .exe : le scan la fournit.
+    const gameIcon = forcedIcon || (await extractExeIcon(exePath));
+
+    return {
+        title: forcedTitle?.trim() || extractGameTitle(exePath),
+        path: exePath,
+        gameIcon,
+        lastLaunched: null as string | null,
+    };
 }
 
 /**
@@ -36,16 +76,7 @@ export function addGame(): Promise<void> {
     }).then((value) => {
         if (value.canceled) return;
 
-        const filePath = value.filePaths[0];
-
-        return app.getFileIcon(filePath, { size: 'large' }).then((nativeIcon) => {
-            const extractedGame = {
-                title: extractGameTitle(filePath),
-                path: filePath,
-                gameIcon: nativeIcon.toDataURL(),
-                lastLaunched: null as string | null,
-            };
-
+        return createGameEntry(value.filePaths[0]).then((extractedGame) => {
             const lib = loadLibrary();
             addGameIfUnique(lib, extractedGame);
             saveLibrary(lib);
@@ -53,7 +84,29 @@ export function addGame(): Promise<void> {
     });
 }
 
-function addGameIfUnique(library: any[], game: any) {
+/**
+ * Ajout groupé utilisé par la détection semi-automatique.
+ * Retourne le nombre d'entrées réellement ajoutées (les doublons sont ignorés).
+ */
+export async function addGames(
+    selections: { path: string; title?: string; gameIcon?: string }[],
+): Promise<number> {
+    const lib = loadLibrary();
+    const before = lib.length;
+
+    for (const selection of selections) {
+        try {
+            addGameIfUnique(lib, await createGameEntry(selection.path, selection.title, selection.gameIcon));
+        } catch (error) {
+            console.error('addGames : entrée ignorée', selection.path, error);
+        }
+    }
+
+    saveLibrary(lib);
+    return lib.length - before;
+}
+
+function addGameIfUnique(library: GameEntry[], game: GameEntry) {
     if (!library.some((element) => element.path === game.path)) {
         library.push(game);
     };
@@ -88,19 +141,83 @@ export function launchGame(exePath: string): Promise<void> {
     });
 }
 
+/**
+ * Ouvre l'explorateur sur le dossier du fichier, fichier sélectionné.
+ * Sans effet si le chemin n'existe plus.
+ */
+export function revealInExplorer(target: string): void {
+    shell.showItemInFolder(target);
+}
+
 // ---------------------------------------------------------------------------
-// Détection du titre — 4 couches, de la plus à la moins fiable
+// Détection du titre — 5 couches, de la plus à la moins fiable
 // ---------------------------------------------------------------------------
 
 /**
  * Détermine le titre d'un jeu depuis son chemin d'exécutable.
- * Essaie successivement 4 stratégies et retourne la première qui aboutit.
+ * Essaie successivement 5 stratégies et retourne la première qui aboutit.
  */
-function extractGameTitle(exePath: string): string {
-    return getGogTitle(exePath)
+export function extractGameTitle(exePath: string): string {
+    return getXboxTitle(exePath)
+        ?? getGogTitle(exePath)
         ?? getSteamTitle(exePath)
         ?? getFolderTitle(exePath)
         ?? normalizeTitle(path.basename(exePath, path.extname(exePath)));
+}
+
+/** Manifestes d'un package Xbox / Microsoft Store, du plus au moins fiable. */
+export const XBOX_MANIFESTS = ['MicrosoftGame.Config', 'appxmanifest.xml'];
+
+/**
+ * Nombre de niveaux remontés depuis le dossier du .exe pour trouver le manifeste.
+ * Le cas courant est <Jeu>/Content/jeu.exe, mais certains titres rangent leur
+ * binaire un cran plus bas.
+ */
+const XBOX_LOOKUP_DEPTH = 3;
+
+/**
+ * Couche 1 — jeu Xbox / Microsoft Store. Le manifeste GDK vit dans le dossier
+ * Content du jeu et déclare le nom d'affichage en clair — y compris la
+ * ponctuation qu'un nom de dossier ne peut pas porter (« Age of Mythology: Retold »).
+ */
+function getXboxTitle(exePath: string): string | null {
+    const manifestDir = findXboxManifestDir(path.dirname(exePath));
+    return manifestDir ? readXboxDisplayName(manifestDir) : null;
+}
+
+/** Remonte depuis le dossier du .exe jusqu'au dossier portant un manifeste Xbox. */
+export function findXboxManifestDir(startDir: string): string | null {
+    let dir = startDir;
+
+    for (let depth = 0; depth < XBOX_LOOKUP_DEPTH; depth++) {
+        if (XBOX_MANIFESTS.some(name => fs.existsSync(path.join(dir, name)))) return dir;
+        const parent = path.dirname(dir);
+        if (parent === dir) return null;
+        dir = parent;
+    }
+    return null;
+}
+
+/** Lit le nom d'affichage déclaré par MicrosoftGame.Config, sinon par appxmanifest.xml. */
+export function readXboxDisplayName(manifestDir: string): string | null {
+    const config = readTextFile(path.join(manifestDir, 'MicrosoftGame.Config'));
+    const fromConfig = config?.match(/DefaultDisplayName="([^"]+)"/i)?.[1];
+    if (fromConfig) return fromConfig;
+
+    const appx = readTextFile(path.join(manifestDir, 'appxmanifest.xml'));
+    const fromAppx = appx?.match(/<DisplayName>([^<]+)/i)?.[1];
+    // « ms-resource:... » n'est résoluble qu'avec le resources.pri : on laisse
+    // alors la main aux couches suivantes plutôt que d'afficher la référence.
+    return fromAppx && !fromAppx.startsWith('ms-resource:') ? fromAppx : null;
+}
+
+/** Lecture tolérante : retourne null si le fichier est absent ou illisible. */
+function readTextFile(filePath: string): string | null {
+    try {
+        return fs.readFileSync(filePath, 'utf-8');
+    } catch {
+        return null;
+    }
 }
 
 
@@ -162,6 +279,7 @@ const TECHNICAL_DIRS = new Set([
     'release', 'debug', 'retail', 'shipping', 'build', 'builds', 'dist', 'native',
     'app', 'application', 'client', 'launcher', 'game', 'games', 'program', 'programs',
     'data', 'system', 'engine', 'redist', 'redistributable', 'runtime', 'support',
+    'content', 'contents',
 ]);
 
 /**
@@ -177,12 +295,12 @@ const CONTAINER_DIRS = new Set([
 ]);
 
 /** Normalise un nom de dossier pour la comparaison (casse et séparateurs ignorés). */
-function canonicalizeDirName(name: string): string {
+export function canonicalizeDirName(name: string): string {
     return name.toLowerCase().replace(/[\s._\-()[\]]/g, '');
 }
 
 /** Vrai si le dossier est un dossier technique, suffixe d'architecture inclus. */
-function isTechnicalDir(name: string): boolean {
+export function isTechnicalDir(name: string): boolean {
     const canonical = canonicalizeDirName(name);
     if (canonical === '') return true;
     if (TECHNICAL_DIRS.has(canonical)) return true;
@@ -216,13 +334,36 @@ function getFolderTitle(exePath: string): string | null {
 }
 
 /**
- * Normalise un nom brut en titre lisible :
- * remplace les séparateurs (. _) par des espaces et retire les numéros de version.
+ * Motifs de numéro de version, appliqués AVANT que les séparateurs ne deviennent
+ * des espaces : « v1.2.3 » n'est plus reconnaissable une fois les points effacés.
+ *
+ * Aucun de ces motifs ne touche un nombre isolé : « Fallout 4 », « Portal 2 » ou
+ * « Cyberpunk 2077 » portent un numéro qui fait partie du titre.
  */
-function normalizeTitle(raw: string): string {
-    return raw
+// \b ne convient pas ici : l'underscore est un caractère de mot, donc « Jeu_v1.05 »
+// n'offre aucune frontière avant le « v ». On délimite explicitement sur
+// « ni lettre ni chiffre ».
+const VERSION_PATTERNS = [
+    /(?<![a-z0-9])v\d+(?:[._]\d+)*(?![a-z0-9])/gi,              // v1, v1.2, v1_05
+    /(?<![a-z0-9])\d+(?:[._]\d+)+(?![a-z0-9])/gi,               // 1.2, 1.0.5 — deux groupes minimum
+    /(?<![a-z0-9])build[\s._-]*\d+(?:[._]\d+)*(?![a-z0-9])/gi,  // build 12345, build.2.7
+];
+
+/**
+ * Normalise un nom brut en titre lisible : retire le numéro de version, remplace
+ * les séparateurs (. _) par des espaces et nettoie ce que le retrait a laissé
+ * derrière lui (parenthèses vides, tiret ou espace en fin de chaîne).
+ */
+export function normalizeTitle(raw: string): string {
+    const withoutVersion = VERSION_PATTERNS.reduce(
+        (value, pattern) => value.replace(pattern, ' '),
+        raw,
+    );
+
+    return withoutVersion
         .replace(/[._]/g, ' ')
-        .replace(/\bv?\d+(\.\d+)+\b/gi, '')
+        .replace(/\(\s*\)|\[\s*\]|\{\s*\}/g, '')   // délimiteurs vidés par le retrait
         .replace(/\s+/g, ' ')
+        .replace(/[\s\-–—]+$/, '')                   // séparateur resté en fin de titre
         .trim();
 }

@@ -34,42 +34,74 @@
 
               <v-divider class="my-4"></v-divider>
 
-              <!-- Scan automatique des jeux -->
+              <!-- Détection des jeux : les emplacements servent au scan manuel
+                   comme au scan de démarrage, ils restent donc toujours visibles. -->
               <v-col cols="12">
-                <v-switch v-model="settings.autoScan"
-                  label="Scan automatique des jeux" color="primary" hide-details></v-switch>
+                <div class="d-flex align-center text-h6 mt-2 mb-1">
+                  <span>Emplacements de recherche</span>
+                  <v-spacer></v-spacer>
+                  <v-btn color="primary" variant="tonal" prepend-icon="mdi-folder-plus"
+                    @click="onAddLocation">
+                    Ajouter
+                  </v-btn>
+                  <v-btn color="primary" class="ml-2" prepend-icon="mdi-folder-search"
+                    :disabled="settings.searchLocations.length === 0 || scan.scanning"
+                    :loading="scan.scanning"
+                    @click="onScanNow">
+                    Scanner maintenant
+                  </v-btn>
+                </div>
+                <v-list class="ml-4">
+                  <v-list-item
+                    v-for="(location, i) in settings.searchLocations"
+                    :key="i"
+                    @mouseenter="hoveredIndex = Number(i)"
+                    @mouseleave="hoveredIndex = null"
+                  >
+                    <v-list-item-title>
+                      {{ location }}
+                      <v-btn v-if="hoveredIndex === i"
+                        color="error" variant="text" class="ml-2"
+                        @click="onDeleteLocation(i)">
+                        Supprimer
+                      </v-btn>
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-list-item v-if="settings.searchLocations.length === 0">
+                    <v-list-item-title class="text-medium-emphasis text-body-2">
+                      Aucun emplacement configuré
+                    </v-list-item-title>
+                  </v-list-item>
+                </v-list>
               </v-col>
 
-              <v-expand-transition>
-                <v-col v-if="settings.autoScan" cols="12">
-                  <div class="d-flex align-center text-h6 mt-2 mb-1">
-                    <span>Emplacements de recherche</span>
-                    <v-btn color="primary" class="ml-4" @click="onAddLocation">Ajouter</v-btn>
-                  </div>
-                  <v-list class="ml-4">
-                    <v-list-item
-                      v-for="(location, i) in settings.searchLocations"
-                      :key="i"
-                      @mouseenter="hoveredIndex = Number(i)"
-                      @mouseleave="hoveredIndex = null"
-                    >
-                      <v-list-item-title>
-                        {{ location }}
-                        <v-btn v-if="hoveredIndex === i"
-                          color="error" variant="text" class="ml-2"
-                          @click="onDeleteLocation(i)">
-                          Supprimer
-                        </v-btn>
-                      </v-list-item-title>
-                    </v-list-item>
-                    <v-list-item v-if="settings.searchLocations.length === 0">
-                      <v-list-item-title class="text-medium-emphasis text-body-2">
-                        Aucun emplacement configuré
-                      </v-list-item-title>
-                    </v-list-item>
-                  </v-list>
-                </v-col>
-              </v-expand-transition>
+              <!-- Mémoires de la recherche : deux listes, réinitialisables séparément -->
+              <v-col cols="12" v-if="settings.dismissedPaths.length > 0 || settings.ignoredPaths.length > 0">
+                <div v-if="settings.dismissedPaths.length > 0"
+                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4">
+                  <v-icon size="18" class="mr-2">mdi-eye-off-outline</v-icon>
+                  <span>{{ settings.dismissedPaths.length }} jeu(x) écarté(s) lors des recherches</span>
+                  <v-btn size="small" variant="text" color="primary" class="ml-2"
+                    @click="onForget('dismissedPaths')">
+                    Réinitialiser
+                  </v-btn>
+                </div>
+                <div v-if="settings.ignoredPaths.length > 0"
+                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4">
+                  <v-icon size="18" class="mr-2">mdi-cancel</v-icon>
+                  <span>{{ settings.ignoredPaths.length }} dossier(s) exclu(s) définitivement</span>
+                  <v-btn size="small" variant="text" color="primary" class="ml-2"
+                    @click="onForget('ignoredPaths')">
+                    Réinitialiser
+                  </v-btn>
+                </div>
+              </v-col>
+
+              <v-col cols="12">
+                <v-switch v-model="settings.autoScan"
+                  :disabled="settings.searchLocations.length === 0"
+                  label="Scanner ces emplacements au démarrage" color="primary" hide-details></v-switch>
+              </v-col>
 
             </v-row>
           </v-card-text>

@@ -1,7 +1,8 @@
 import { app, BrowserWindow,globalShortcut, Tray, Menu,shell,ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
-import { addGame,deleteGame,launchGame,loadLibrary } from './libraryManager'
+import { addGame,addGames,deleteGame,extractExeIcon,launchGame,loadLibrary,revealInExplorer } from './libraryManager'
 import { loadSettings, saveSettingValue, addSearchLocation, getSettingValue } from './settings'
+import { scanLocations, abortScan } from './gameScanner'
 import { loadWindowState, trackWindowState, MIN_WINDOW_SIZE } from './windowState'
 import path from 'node:path'
 
@@ -41,7 +42,10 @@ function createWindow() {
   })
 
   if (windowState.maximized) win.maximize()
-  win.once('ready-to-show', () => win?.show())
+  win.once('ready-to-show', () => {
+    win?.show()
+    scheduleAutoScan()
+  })
   trackWindowState(win)
 
   if (VITE_DEV_SERVER_URL) {
@@ -108,6 +112,31 @@ app.whenReady().then(() => {
   });
 }).then(createWindow)
 
+/** Délai avant le scan de démarrage : la bibliothèque doit s'afficher en premier. */
+const AUTO_SCAN_DELAY = 2000
+
+/**
+ * Scan silencieux au démarrage, si le paramètre autoScan est actif.
+ * Aucun dialogue n'est ouvert d'office : le renderer reçoit les candidats et
+ * se contente d'une notification cliquable s'il y a des nouveautés.
+ */
+function scheduleAutoScan() {
+  if (!getSettingValue('autoScan')) return
+  const locations = (getSettingValue('searchLocations') as string[]) ?? []
+  if (locations.length === 0) return
+
+  setTimeout(async () => {
+    try {
+      const candidates = await scanLocations(undefined, (progress) => {
+        win?.webContents.send('scan-progress', progress)
+      })
+      if (candidates.length > 0) win?.webContents.send('auto-scan-result', candidates)
+    } catch (error) {
+      console.error('scheduleAutoScan error:', error)
+    }
+  }, AUTO_SCAN_DELAY)
+}
+
 // --- Handlers IPC : Library ---
 ipcMain.handle('add-game', () => {
   return addGame();
@@ -122,6 +151,22 @@ ipcMain.handle('delete-game', (_event, path: string) => {
   return deleteGame(path);
 })
 
+// --- Handlers IPC : Scan ---
+ipcMain.handle('scan-locations', (event, locations?: string[]) => {
+  return scanLocations(locations, (progress) => event.sender.send('scan-progress', progress));
+});
+ipcMain.handle('abort-scan', () => {
+  abortScan();
+});
+ipcMain.handle('add-games', (_event, selections: { path: string; title?: string; gameIcon?: string }[]) => {
+  return addGames(selections);
+});
+ipcMain.handle('extract-exe-icon', (_event, exePath: string) => {
+  return extractExeIcon(exePath);
+});
+ipcMain.handle('reveal-in-explorer', (_event, target: string) => {
+  revealInExplorer(target);
+});
 // --- Handlers IPC : Settings ---
 ipcMain.handle('load-settings', () => {
   return loadSettings();

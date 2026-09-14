@@ -33,6 +33,30 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   /** Lance l'exécutable du jeu via shell.openPath. */
   launchGame: (path: string) => ipcRenderer.invoke('launch-game', path),
 
+  // --- Scan API ---
+  /** Lance un scan des emplacements donnés (ou de tous ceux configurés) et retourne les candidats. */
+  scanLocations: (locations?: string[]) => ipcRenderer.invoke('scan-locations', locations),
+  /** Interrompt le scan en cours. */
+  abortScan: () => ipcRenderer.invoke('abort-scan'),
+  /** Ouvre l'explorateur sur le dossier du fichier, fichier sélectionné. */
+  revealInExplorer: (target: string) => ipcRenderer.invoke('reveal-in-explorer', target),
+  /** Retourne l'icône d'un exécutable en data URL (vide si le .exe n'en porte pas). */
+  extractExeIcon: (exePath: string) => ipcRenderer.invoke('extract-exe-icon', exePath),
+  /** Ajoute en une fois les candidats validés ; retourne le nombre de jeux ajoutés. */
+  addGames: (selections: { path: string; title?: string }[]) => ipcRenderer.invoke('add-games', selections),
+  /** S'abonne à la progression du scan ; retourne la fonction de désabonnement. */
+  onScanProgress: (callback: (progress: any) => void) => {
+    const listener = (_event: any, progress: any) => callback(progress)
+    ipcRenderer.on('scan-progress', listener)
+    return () => ipcRenderer.off('scan-progress', listener)
+  },
+  /** S'abonne aux résultats d'un scan automatique déclenché au démarrage. */
+  onAutoScanResult: (callback: (candidates: any[]) => void) => {
+    const listener = (_event: any, candidates: any[]) => callback(candidates)
+    ipcRenderer.on('auto-scan-result', listener)
+    return () => ipcRenderer.off('auto-scan-result', listener)
+  },
+
   // --- Settings API ---
   /** Retourne le tableau complet des paramètres. */
   loadSettings: () => ipcRenderer.invoke('load-settings'),

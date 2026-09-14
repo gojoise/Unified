@@ -75,6 +75,33 @@
 | Icône automatique | Icône extraite du `.exe` au moment de l'ajout |
 | Dernier lancement | Date du dernier démarrage enregistrée par jeu |
 
+### 🔍 Détection des jeux
+
+| Fonctionnalité | Description |
+| --- | --- |
+| Ajout manuel | Sélection directe d'un `.exe` |
+| Détection semi-auto | Recherche dans les emplacements configurés, avec validation avant ajout |
+| Sources reconnues | Manifestes **Steam** (`appmanifest_*.acf`), **GOG** (`goggame-*.info`) et **Xbox / Microsoft Store** (`MicrosoftGame.Config`), sinon heuristique de dossier |
+| Jeux Xbox | Nom d'affichage, logo et exécutable lus dans le manifeste ; les packs de DLC sont écartés |
+| Choix de l'exécutable | Le binaire principal est élu par score ; les autres restent proposés en alternative |
+| Correction avant ajout | Titre éditable, exécutable interchangeable, dossier excluable des prochains scans |
+| Déduplication | Jeux déjà en bibliothèque, emplacements imbriqués et dossiers ignorés sont écartés |
+| Mémoire des refus | Les candidats laissés décochés ne sont plus reproposés — réinitialisable dans les paramètres |
+
+Quatre façons de lancer une recherche :
+
+1. **À l'ajout d'un emplacement** — scan ciblé sur le dossier qui vient d'être choisi
+2. **Vignette « Rechercher des jeux »** dans la bibliothèque
+3. **Bouton « Scanner maintenant »** dans les paramètres
+4. **Au démarrage** si le scan automatique est activé — silencieux, avec une notification cliquable en cas de nouveautés
+
+À la validation, **« Ajouter »** enregistre les jeux cochés et retient les décochés pour ne plus les proposer ; **« Plus tard »** ne mémorise rien. Deux listes séparées gardent la trace des refus, chacune réinitialisable depuis les paramètres :
+
+| Mémoire | Alimentée par | Effet |
+| --- | --- | --- |
+| Jeux écartés | Candidats décochés à la validation | Le dossier n'est plus proposé |
+| Dossiers exclus | Action « Ne plus proposer » du menu ⋮ | Le dossier n'est plus proposé |
+
 ### ⚙️ Paramètres
 
 - Menu de paramètres dédié, accessible depuis la bibliothèque
@@ -150,6 +177,7 @@ Unified/
 ├── electron/                 # Processus principal (backend)
 │   ├── main.ts               # BrowserWindow, raccourcis globaux, handlers IPC
 │   ├── libraryManager.ts     # CRUD de la bibliothèque de jeux
+│   ├── gameScanner.ts       # Détection semi-automatique (scan des emplacements)
 │   ├── settings.ts           # Lecture / écriture des paramètres
 │   └── preload.ts            # Contrat d'API exposé au renderer (window.electronAPI)
 │
@@ -197,7 +225,7 @@ Les données sont conservées en clair dans le dossier utilisateur d'Electron :
 | Fichier | Contenu |
 | --- | --- |
 | `user-library.json` | Liste des jeux, chemins, icônes, dates de lancement |
-| `settings.json` | Préférences de l'application |
+| `settings.json` | Préférences, emplacements de recherche, jeux écartés et dossiers exclus |
 
 Les deux fichiers se trouvent dans :
 
@@ -231,8 +259,10 @@ Les deux fichiers se trouvent dans :
 ### 🔍 Détection des jeux
 
 - [ ] Améliorer la détection manuelle
-- [ ] Détection semi-auto (recherche dans les dossiers définis dans les paramètres)
+- [x] Détection semi-auto (recherche dans les dossiers définis dans les paramètres)
 - [ ] Détection automatique des jeux
+- [ ] Reconnaître un emplacement pointé trop haut (dossier contenant des dossiers de jeux)
+- [ ] Surveillance des emplacements (détection sans relancer l'application)
 
 ### ⚙️ Paramètres
 

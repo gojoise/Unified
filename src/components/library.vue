@@ -58,6 +58,21 @@
             </v-card-actions>
           </v-card>
         </v-col>
+        <!--Vignette de recherche semi-automatique-->
+        <!-- Mise en avant quand la bibliothèque est vide : c'est le moyen le
+             plus rapide de la remplir. -->
+        <v-col cols="auto" class="pa-3" :class="{ 'order-first': library.length === 0 }">
+          <v-card
+            class="game-card add-game-card d-flex justify-center align-center flex-column"
+            @click="onScanGames"
+          >
+            <v-card-title class="game-title text-center">
+              <v-icon size="48" color="primary">mdi-folder-search</v-icon>
+              <div>Rechercher des jeux</div>
+            </v-card-title>
+          </v-card>
+        </v-col>
+
         <!--Vignette ajout manuel d'un jeu-->
         <v-col cols="auto" class="pa-3">
           <v-card

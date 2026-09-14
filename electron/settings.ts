@@ -17,6 +17,8 @@ export function initializeSettingsDefaults(): Setting[] {
     new Setting('confirmBeforeDelete',  'Confirmer avant suppression',                  false),
     new Setting('autoScan',             'Scan automatique des emplacements',            false),
     new Setting('minimizeToTray',       'Minimiser dans le tray au lieu de fermer',     false),
+    new Setting('ignoredPaths',         'Dossiers exclus de la recherche',              []),
+    new Setting('dismissedPaths',       'Jeux écartés lors des recherches',             []),
     new Setting('gameStartBehavior',    'Comportement au lancement d\'un jeu',          'nothing'),
   ];
 
@@ -87,7 +89,6 @@ export async function addSearchLocation(): Promise<string | null> {
   if (result.canceled || !result.filePaths || result.filePaths.length === 0) return null;
   return result.filePaths[0];
 }
-
 
 class Setting {
   code: string;

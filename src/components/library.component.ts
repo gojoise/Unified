@@ -1,13 +1,29 @@
 import { ref, onMounted } from 'vue';
 import { useLibrary } from '../services/library.service'
-import { useSettingsStore } from '../services/settings.service'
+import { useScan } from '../services/scan.service'
+import { addLocation, useSettingsStore } from '../services/settings.service'
 
 export default {
   setup() {
     const { sortedLibrary, loading, load, add, launch, remove } = useLibrary()
+    const { runScan } = useScan()
     const settings = useSettingsStore()
 
     onMounted(() => { load() })
+
+    /**
+     * Recherche semi-automatique. Sans emplacement configuré, on en fait choisir
+     * un tout de suite plutôt que de renvoyer l'utilisateur vers les paramètres :
+     * la vignette ne doit jamais être une impasse.
+     */
+    const onScanGames = async () => {
+      if (settings.searchLocations.length === 0) {
+        const chosen = await addLocation()
+        if (!chosen) return
+        return runScan([chosen])
+      }
+      return runScan()
+    }
 
     const deleteDialog = ref({ visible: false, pendingPath: null as string | null })
 
@@ -39,6 +55,7 @@ export default {
       options,
       deleteDialog,
       onAddGame: add,
+      onScanGames,
       onLaunchGame: launch,
       onDeleteConfirm,
       onDeleteCancel,

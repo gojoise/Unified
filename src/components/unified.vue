@@ -4,6 +4,10 @@
       <router-view></router-view>
     </v-main>
 
+    <!-- Dialogue de détection semi-automatique : monté ici pour rester
+         accessible depuis la bibliothèque comme depuis les paramètres. -->
+    <scan-dialog />
+
     <v-snackbar
       v-model="snackbar.visible"
       :color="typeConfig[snackbar.type].color"
@@ -17,6 +21,9 @@
         {{ snackbar.message }}
       </div>
       <template #actions>
+        <v-btn v-if="snackbar.action" variant="text" @click="runAction">
+          {{ snackbar.action.label }}
+        </v-btn>
         <v-btn icon="mdi-close" variant="text" size="small" @click="close" />
       </template>
     </v-snackbar>
@@ -24,14 +31,22 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, onMounted } from 'vue';
 import { useNotification } from '../services/notification.service';
+import { initScan } from '../services/scan.service';
+import ScanDialog from './scan-dialog.vue';
 
 export default defineComponent({
   name: 'Unified',
+  components: { ScanDialog },
   setup() {
-    const { snackbar, typeConfig, close } = useNotification();
-    return { snackbar, typeConfig, close };
+    const { snackbar, typeConfig, close, runAction } = useNotification();
+
+    // Abonnement unique aux évènements de scan du main process (progression
+    // et résultat du scan automatique au démarrage).
+    onMounted(() => { initScan() });
+
+    return { snackbar, typeConfig, close, runAction };
   },
 });
 </script>
