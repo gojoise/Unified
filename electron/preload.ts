@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   loadLibrary: () => ipcRenderer.invoke('load-library'),
   /** Lance l'exécutable du jeu via shell.openPath. */
   launchGame: (path: string) => ipcRenderer.invoke('launch-game', path),
+  /** Applique le paramètre « Comportement au lancement d'un jeu » (rien / réduire / tray / quitter). */
+  applyGameStartBehavior: () => ipcRenderer.invoke('apply-game-start-behavior'),
 
   // --- Scan API ---
   /** Lance un scan des emplacements donnés (ou de tous ceux configurés) et retourne les candidats. */

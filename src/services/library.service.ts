@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { useNotification } from './notification.service'
+import { applyGameStartBehavior } from './shell.service'
 
 // Wrappers renderer autour des méthodes IPC exposées par electron/preload.ts.
 // Ces fonctions sont de simples relais vers window.ipcRenderer ; la logique métier
@@ -64,6 +65,9 @@ export function useLibrary() {
     const minDelay = new Promise((resolve) => setTimeout(resolve, 2000))
     try {
       await Promise.all([launchGame(path), minDelay])
+      // Après l'animation seulement : la fenêtre ne s'efface pas avant que le
+      // lancement soit confirmé, et l'échec laisse le launcher visible.
+      await applyGameStartBehavior()
     } catch (error) {
       notifyError('Impossible de lancer le jeu')
     } finally {

@@ -44,15 +44,16 @@
                   ></v-btn>
                 </template>
 
-                <v-list>
+                <v-list class="menu-list" density="compact">
                   <v-list-item
                     v-for="(option, o) in options"
                     :key="o"
                     :value="o"
+                    :title="option.title"
+                    :prepend-icon="option.icon"
+                    :base-color="option.color"
                     @click="option.action(game.path)"
-                  >
-                    <v-list-item-title>{{ option.title }}</v-list-item-title>
-                  </v-list-item>
+                  ></v-list-item>
                 </v-list>
               </v-menu>
             </v-card-actions>

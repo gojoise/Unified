@@ -1,0 +1,16 @@
+/*
+ * Styles globaux de l'application.
+ *
+ * Réservé aux surcharges qui doivent traverser un téléport Vuetify (menus,
+ * dialogues, snackbars) : leur contenu est rendu dans .v-overlay-container,
+ * hors de l'arbre du composant, donc hors de portée d'un <style scoped>.
+ */
+
+/*
+ * Menus contextuels (carte de jeu, candidat de recherche).
+ * Vuetify pose un spacer de 32 px entre l'icône et le texte d'un v-list-item —
+ * calibré pour une liste de navigation, trop large pour un menu compact.
+ */
+.menu-list .v-list-item__prepend > .v-icon ~ .v-list-item__spacer {
+  width: 12px;
+}

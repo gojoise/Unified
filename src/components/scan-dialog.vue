@@ -118,7 +118,7 @@
                 <template #activator="{ props }">
                   <v-btn icon="mdi-dots-vertical" variant="text" size="small" v-bind="props"></v-btn>
                 </template>
-                <v-list density="compact">
+                <v-list class="menu-list" density="compact">
                   <!-- Action fixe, en tête : vérifier le binaire dans l'explorateur
                        est souvent ce qui permet de trancher entre les alternatives. -->
                   <v-list-item

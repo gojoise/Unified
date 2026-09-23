@@ -2,6 +2,7 @@ import { computed, reactive } from 'vue'
 import { useNotification } from './notification.service'
 import { useLibrary } from './library.service'
 import { dismissPaths, ignorePath } from './settings.service'
+import { revealInExplorer } from './shell.service'
 import type { ScanCandidate, ScanEntry, ScanProgress } from '../types/scan.types'
 
 /**
@@ -160,13 +161,7 @@ export function useScan() {
    * Ouvre l'explorateur sur l'exécutable retenu — le moyen le plus direct de
    * vérifier si c'est le bon binaire avant de trancher.
    */
-  const revealEntry = async (entry: ScanEntry) => {
-    try {
-      await window.ipcRenderer.revealInExplorer(entry.exePath)
-    } catch (error) {
-      notifyError("Impossible d'ouvrir l'emplacement du fichier")
-    }
-  }
+  const revealEntry = (entry: ScanEntry) => revealInExplorer(entry.exePath)
 
   /** Exclut définitivement le dossier d'un candidat des prochains scans. */
   const ignoreEntry = async (entry: ScanEntry) => {

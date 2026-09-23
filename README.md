@@ -247,7 +247,7 @@ Les deux fichiers se trouvent dans :
 - [ ] Vue liste vs vue grille (toggle)
 - [ ] Zoom sur la grille (taille des cartes réglable)
 - [ ] Jeux favoris / épinglés en haut
-- [ ] Option pour ouvrir le dossier du jeu
+- [x] Option pour ouvrir le dossier du jeu
 
 ### 🏷 Métadonnées des jeux
 
@@ -268,7 +268,8 @@ Les deux fichiers se trouvent dans :
 
 - [ ] Thème clair / sombre
 - [ ] Démarrage automatique avec Windows
-- [ ] Réduction dans la barre système (system tray)
+- [x] Réduction dans la barre système (system tray)
+- [x] Comportement au lancement d'un jeu (ne rien faire / réduire / fermer dans le tray / quitter)
 
 ### 🔔 Notifications
 

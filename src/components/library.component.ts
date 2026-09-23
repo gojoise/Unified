@@ -1,7 +1,17 @@
 import { ref, onMounted } from 'vue';
 import { useLibrary } from '../services/library.service'
 import { useScan } from '../services/scan.service'
+import { revealInExplorer } from '../services/shell.service'
 import { addLocation, useSettingsStore } from '../services/settings.service'
+
+/** Entrée du menu contextuel d'une carte de jeu. */
+interface GameOption {
+  title: string
+  icon: string
+  /** Couleur Vuetify — réservée aux actions destructrices. */
+  color?: string
+  action: (path: string) => void
+}
 
 export default {
   setup() {
@@ -44,9 +54,20 @@ export default {
       deleteDialog.value = { visible: false, pendingPath: null }
     }
 
-    const options = ref([
-      { title: 'Supprimer', action: (path: string) => onDeleteRequest(path) },
-      { title: 'Autre option' },
+    // Même action que le menu du dialogue de détection : l'ordre est identique,
+    // action neutre en tête et action destructrice en dernier.
+    const options = ref<GameOption[]>([
+      {
+        title: 'Voir le dossier',
+        icon: 'mdi-folder-open-outline',
+        action: (path: string) => revealInExplorer(path),
+      },
+      {
+        title: 'Supprimer',
+        icon: 'mdi-delete-outline',
+        color: 'error',
+        action: (path: string) => onDeleteRequest(path),
+      },
     ])
 
     return {

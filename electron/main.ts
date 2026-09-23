@@ -19,6 +19,56 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
 let win: BrowserWindow | null
+// Référence conservée au niveau module : un Tray collecté par le GC disparaît de
+// la zone de notification, or « Fermer dans le tray » en dépend pour rouvrir la fenêtre.
+let tray: Tray | null = null
+
+// Distingue une vraie sortie d'une fermeture de fenêtre : sans ce drapeau,
+// « Minimiser dans le tray » masquerait aussi la fenêtre quand on veut quitter.
+let isQuitting = false
+
+/** Sortie franche de l'application, quel que soit le paramètre de tray. */
+function quitApp() {
+  isQuitting = true
+  app.quit()
+}
+
+/** Ramène la fenêtre au premier plan, qu'elle soit réduite ou masquée dans le tray. */
+function showWindow() {
+  if (!win) return
+  if (!win.isVisible()) win.show()
+  if (win.isMinimized()) win.restore()
+  win.focus()
+}
+
+/**
+ * Applique le paramètre « Comportement au lancement d'un jeu », une fois le jeu
+ * démarré : l'utilisateur choisit si le launcher reste affiché ou s'efface.
+ */
+function applyGameStartBehavior() {
+  switch (getSettingValue('gameStartBehavior')) {
+    case 'minimize':
+      win?.minimize()
+      break
+    case 'close-to-tray':
+      // Simple masquage : l'icône du tray reste le moyen de revenir à la fenêtre.
+      win?.hide()
+      break
+    case 'close':
+      quitApp()
+      break
+    // 'nothing' et valeur absente : la fenêtre ne bouge pas.
+  }
+}
+
+// Instance unique : l'application masquée dans le tray n'a plus de fenêtre à
+// l'écran, relancer le raccourci doit donc ramener celle qui existe déjà plutôt
+// que d'ouvrir un second Unified avec sa propre icône de notification.
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', showWindow)
+}
 
 function createWindow() {
   // Géométrie de la session précédente, ou 1280x720 (16/9) au premier lancement.
@@ -48,6 +98,16 @@ function createWindow() {
   })
   trackWindowState(win)
 
+  // « Minimiser dans le tray au lieu de fermer » : le bouton X masque la fenêtre
+  // au lieu de terminer l'application. Les sorties explicites (menu du tray,
+  // Ctrl+Q, comportement « Fermer l'application ») passent par quitApp et ne
+  // sont donc pas interceptées.
+  win.on('close', (event) => {
+    if (isQuitting || !getSettingValue('minimizeToTray')) return
+    event.preventDefault()
+    win?.hide()
+  })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
@@ -55,9 +115,13 @@ function createWindow() {
   }
 
   // VITE_PUBLIC pointe sur public/ en dev et sur dist/ en prod — le logo doit être dans public/logo.png
-  const tray = new Tray(path.join(process.env.VITE_PUBLIC, 'logo.png'));
+  tray = new Tray(path.join(process.env.VITE_PUBLIC, 'logo.png'));
   tray.setToolTip("Unified");
   const trayMenu = Menu.buildFromTemplate([
+    {
+      label: "Ouvrir Unified",
+      click: showWindow,
+    },
     {
       label: "Ouvrir le wiki",
       click: () => {
@@ -66,16 +130,20 @@ function createWindow() {
     },
     {
       label: "Quitter",
-      click: () => {
-        // Quitter l'app via le tray
-        win?.close();
-        app.quit();
-      },
+      click: quitApp,
     },
   ]);
   tray.setContextMenu(trayMenu);
+  // Clic simple sur l'icône : raccourci attendu pour ressortir du tray.
+  tray.on('click', showWindow);
   win.removeMenu();
 }
+
+// Sortie déclenchée ailleurs (fermeture de session Windows, app.quit() d'Electron) :
+// la fenêtre doit se fermer pour de bon, pas retomber dans le tray.
+app.on('before-quit', () => {
+  isQuitting = true
+})
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -106,10 +174,7 @@ app.whenReady().then(() => {
   globalShortcut.register("F1", () => {
     shell.openExternal("https://github.com/gojoise/Unified/wiki");
   });
-  globalShortcut.register("CommandOrControl+Q", () => {
-    win?.close();
-    app.quit();
-  });
+  globalShortcut.register("CommandOrControl+Q", quitApp);
 }).then(createWindow)
 
 /** Délai avant le scan de démarrage : la bibliothèque doit s'afficher en premier. */
@@ -149,6 +214,10 @@ ipcMain.handle('launch-game', (_event, path: string) => {
 });
 ipcMain.handle('delete-game', (_event, path: string) => {
   return deleteGame(path);
+})
+/** Applique le comportement configuré après qu'un jeu a été lancé. */
+ipcMain.handle('apply-game-start-behavior', () => {
+  applyGameStartBehavior();
 })
 
 // --- Handlers IPC : Scan ---
