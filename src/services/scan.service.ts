@@ -1,9 +1,13 @@
-import { computed, reactive } from 'vue'
-import { useNotification } from './notification.service'
-import { useLibrary } from './library.service'
-import { dismissPaths, ignorePath } from './settings.service'
-import { revealInExplorer } from './shell.service'
-import type { ScanCandidate, ScanEntry, ScanProgress } from '../types/scan.types'
+import { computed, reactive } from 'vue';
+import { useNotification } from './notification.service';
+import { useLibrary } from './library.service';
+import { dismissPaths, ignorePath } from './settings.service';
+import { revealInExplorer } from './shell.service';
+import type {
+  ScanCandidate,
+  ScanEntry,
+  ScanProgress,
+} from '../types/scan.types';
 
 /**
  * Détection semi-automatique côté renderer.
@@ -16,12 +20,12 @@ import type { ScanCandidate, ScanEntry, ScanProgress } from '../types/scan.types
 
 interface ScanState {
   /** Un scan est en cours — sert aussi de garde contre les déclenchements concurrents. */
-  scanning: boolean
-  progress: ScanProgress
-  entries: ScanEntry[]
-  dialogVisible: boolean
+  scanning: boolean;
+  progress: ScanProgress;
+  entries: ScanEntry[];
+  dialogVisible: boolean;
   /** Vrai quand le dernier scan s'est terminé sans rien trouver de nouveau. */
-  finishedEmpty: boolean
+  finishedEmpty: boolean;
 }
 
 const state = reactive<ScanState>({
@@ -30,9 +34,9 @@ const state = reactive<ScanState>({
   entries: [],
   dialogVisible: false,
   finishedEmpty: false,
-})
+});
 
-let unsubscribe: (() => void)[] = []
+let unsubscribe: (() => void)[] = [];
 
 /** Transforme les candidats bruts en entrées éditables, pré-cochées selon la confiance. */
 function toEntries(candidates: ScanCandidate[]): ScanEntry[] {
@@ -40,7 +44,7 @@ function toEntries(candidates: ScanCandidate[]): ScanEntry[] {
     ...candidate,
     selected: candidate.confidence !== 'low',
     manualChoice: false,
-  }))
+  }));
 }
 
 /**
@@ -48,40 +52,48 @@ function toEntries(candidates: ScanCandidate[]): ScanEntry[] {
  * Appelé une seule fois depuis `unified.vue`.
  */
 export function initScan(): void {
-  if (unsubscribe.length > 0) return
-  const { notify } = useNotification()
+  if (unsubscribe.length > 0) return;
+  const { notify } = useNotification();
 
   unsubscribe.push(
     window.ipcRenderer.onScanProgress((progress: ScanProgress) => {
-      state.progress = progress
-    }),
-  )
+      state.progress = progress;
+    })
+  );
 
   // Scan silencieux au démarrage : pas de dialogue imposé, juste une notification
   // cliquable s'il y a effectivement des nouveautés.
   unsubscribe.push(
     window.ipcRenderer.onAutoScanResult((candidates: ScanCandidate[]) => {
-      if (candidates.length === 0) return
-      state.entries = toEntries(candidates)
-      state.finishedEmpty = false
+      if (candidates.length === 0) return;
+      state.entries = toEntries(candidates);
+      state.finishedEmpty = false;
       notify(
         `${candidates.length} nouveau${candidates.length > 1 ? 'x' : ''} jeu${candidates.length > 1 ? 'x' : ''} détecté${candidates.length > 1 ? 's' : ''}`,
         'info',
         10000,
-        { label: 'Voir', onClick: () => { state.dialogVisible = true } },
-      )
-    }),
-  )
+        {
+          label: 'Voir',
+          onClick: () => {
+            state.dialogVisible = true;
+          },
+        }
+      );
+    })
+  );
 }
 
 export function useScan() {
-  const { notifySuccess, notifyError, notifyInfo } = useNotification()
-  const { load } = useLibrary()
+  const { notifySuccess, notifyError, notifyInfo } = useNotification();
+  const { load } = useLibrary();
 
-  const selectedCount = computed(() => state.entries.filter((entry) => entry.selected).length)
+  const selectedCount = computed(
+    () => state.entries.filter((entry) => entry.selected).length
+  );
   const allSelected = computed(
-    () => state.entries.length > 0 && selectedCount.value === state.entries.length,
-  )
+    () =>
+      state.entries.length > 0 && selectedCount.value === state.entries.length
+  );
 
   /**
    * Lance un scan. `locations` non fourni = tous les emplacements configurés.
@@ -89,34 +101,34 @@ export function useScan() {
    */
   const runScan = async (locations?: string[]) => {
     if (state.scanning) {
-      notifyInfo('Une recherche est déjà en cours')
-      state.dialogVisible = true
-      return
+      notifyInfo('Une recherche est déjà en cours');
+      state.dialogVisible = true;
+      return;
     }
 
-    state.scanning = true
-    state.entries = []
-    state.finishedEmpty = false
-    state.progress = { scanned: 0, total: 0, found: 0, current: '' }
-    state.dialogVisible = true
+    state.scanning = true;
+    state.entries = [];
+    state.finishedEmpty = false;
+    state.progress = { scanned: 0, total: 0, found: 0, current: '' };
+    state.dialogVisible = true;
 
     try {
-      const candidates = await window.ipcRenderer.scanLocations(locations)
-      state.entries = toEntries(candidates)
-      state.finishedEmpty = candidates.length === 0
+      const candidates = await window.ipcRenderer.scanLocations(locations);
+      state.entries = toEntries(candidates);
+      state.finishedEmpty = candidates.length === 0;
     } catch (error) {
-      state.dialogVisible = false
-      notifyError('La recherche de jeux a échoué')
+      state.dialogVisible = false;
+      notifyError('La recherche de jeux a échoué');
     } finally {
-      state.scanning = false
+      state.scanning = false;
     }
-  }
+  };
 
   /** Interrompt le parcours en cours ; les candidats déjà trouvés sont perdus. */
   const cancelScan = async () => {
-    if (!state.scanning) return
-    await window.ipcRenderer.abortScan()
-  }
+    if (!state.scanning) return;
+    await window.ipcRenderer.abortScan();
+  };
 
   /**
    * Valide la recherche : les candidats cochés rejoignent la bibliothèque, les
@@ -124,12 +136,12 @@ export function useScan() {
    * ce bouton de « Plus tard », qui ne retient rien.
    */
   const confirmSelection = async () => {
-    const selected = state.entries.filter((entry) => entry.selected)
-    const dismissed = state.entries.filter((entry) => !entry.selected)
+    const selected = state.entries.filter((entry) => entry.selected);
+    const dismissed = state.entries.filter((entry) => !entry.selected);
 
     try {
       if (dismissed.length > 0) {
-        await dismissPaths(dismissed.map((entry) => entry.installDir))
+        await dismissPaths(dismissed.map((entry) => entry.installDir));
       }
 
       if (selected.length > 0) {
@@ -140,39 +152,43 @@ export function useScan() {
             path: entry.exePath,
             title: entry.title,
             gameIcon: entry.gameIcon,
-          })),
-        )
-        await load()
-        notifySuccess(added > 1 ? `${added} jeux ajoutés à la bibliothèque` : 'Jeu ajouté à la bibliothèque')
+          }))
+        );
+        await load();
+        notifySuccess(
+          added > 1
+            ? `${added} jeux ajoutés à la bibliothèque`
+            : 'Jeu ajouté à la bibliothèque'
+        );
       } else {
         notifyInfo(
-          `${dismissed.length > 1 ? dismissed.length + ' jeux écartés' : 'Jeu écarté'} — réversible dans les paramètres`,
-        )
+          `${dismissed.length > 1 ? dismissed.length + ' jeux écartés' : 'Jeu écarté'} — réversible dans les paramètres`
+        );
       }
 
-      state.dialogVisible = false
-      state.entries = []
+      state.dialogVisible = false;
+      state.entries = [];
     } catch (error) {
-      notifyError("Impossible d'enregistrer votre sélection")
+      notifyError("Impossible d'enregistrer votre sélection");
     }
-  }
+  };
 
   /**
    * Ouvre l'explorateur sur l'exécutable retenu — le moyen le plus direct de
    * vérifier si c'est le bon binaire avant de trancher.
    */
-  const revealEntry = (entry: ScanEntry) => revealInExplorer(entry.exePath)
+  const revealEntry = (entry: ScanEntry) => revealInExplorer(entry.exePath);
 
   /** Exclut définitivement le dossier d'un candidat des prochains scans. */
   const ignoreEntry = async (entry: ScanEntry) => {
     try {
-      await ignorePath(entry.installDir)
-      state.entries = state.entries.filter((candidate) => candidate !== entry)
-      notifyInfo(`« ${entry.title} » ne sera plus proposé`)
+      await ignorePath(entry.installDir);
+      state.entries = state.entries.filter((candidate) => candidate !== entry);
+      notifyInfo(`« ${entry.title} » ne sera plus proposé`);
     } catch (error) {
-      notifyError("Impossible d'ignorer ce dossier")
+      notifyError("Impossible d'ignorer ce dossier");
     }
-  }
+  };
 
   /**
    * Remplace l'exécutable retenu par une des alternatives du même dossier.
@@ -181,30 +197,35 @@ export function useScan() {
    * pas le binaire.
    */
   const chooseExecutable = async (entry: ScanEntry, exePath: string) => {
-    if (exePath === entry.exePath) return
+    if (exePath === entry.exePath) return;
 
-    entry.alternatives = [entry.exePath, ...entry.alternatives.filter((alt) => alt !== exePath)]
-    entry.exePath = exePath
-    entry.selected = true
-    entry.manualChoice = true
+    entry.alternatives = [
+      entry.exePath,
+      ...entry.alternatives.filter((alt) => alt !== exePath),
+    ];
+    entry.exePath = exePath;
+    entry.selected = true;
+    entry.manualChoice = true;
 
-    if (entry.iconFromManifest) return
+    if (entry.iconFromManifest) return;
     try {
-      entry.gameIcon = await window.ipcRenderer.extractExeIcon(exePath)
+      entry.gameIcon = await window.ipcRenderer.extractExeIcon(exePath);
     } catch (error) {
-      entry.gameIcon = ''
+      entry.gameIcon = '';
     }
-  }
+  };
 
   const toggleAll = () => {
-    const next = !allSelected.value
-    state.entries.forEach((entry) => { entry.selected = next })
-  }
+    const next = !allSelected.value;
+    state.entries.forEach((entry) => {
+      entry.selected = next;
+    });
+  };
 
   /** « Plus tard » : ferme sans rien mémoriser, tout sera reproposé au prochain scan. */
   const closeDialog = () => {
-    state.dialogVisible = false
-  }
+    state.dialogVisible = false;
+  };
 
   return {
     scan: state,
@@ -218,5 +239,5 @@ export function useScan() {
     chooseExecutable,
     toggleAll,
     closeDialog,
-  }
+  };
 }

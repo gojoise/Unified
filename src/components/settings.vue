@@ -2,18 +2,29 @@
   <div class="exit-fab">
     <router-link to="/">
       <v-icon size="36" color="primary">mdi-close-circle-outline</v-icon>
-      <v-tooltip activator="parent" location="bottom" text="Sortir des paramètres"></v-tooltip>
+      <v-tooltip
+        activator="parent"
+        location="bottom"
+        text="Sortir des paramètres"
+      ></v-tooltip>
     </router-link>
   </div>
   <div class="d-flex flex-row tabs-container">
     <v-tabs v-model="tab" color="primary" direction="vertical">
-      <v-tab prepend-icon="mdi-cog"            text="Général"    value="option-1"></v-tab>
-      <v-tab prepend-icon="mdi-palette"        text="Apparence"  value="option-2"></v-tab>
-      <v-tab prepend-icon="mdi-desktop-classic" text="Système"   value="option-3"></v-tab>
+      <v-tab prepend-icon="mdi-cog" text="Général" value="option-1"></v-tab>
+      <v-tab
+        prepend-icon="mdi-palette"
+        text="Apparence"
+        value="option-2"
+      ></v-tab>
+      <v-tab
+        prepend-icon="mdi-desktop-classic"
+        text="Système"
+        value="option-3"
+      ></v-tab>
     </v-tabs>
     <v-divider vertical></v-divider>
     <v-tabs-window class="tabs-window-flex" v-model="tab">
-
       <!-- ── Général ── -->
       <v-tabs-window-item value="option-1">
         <v-card flat>
@@ -21,15 +32,22 @@
           <v-divider></v-divider>
           <v-card-text>
             <v-row class="d-flex ml-4">
-
               <v-col cols="12">
-                <v-switch v-model="settings.enableNotifications"
-                  label="Activer les notifications" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.enableNotifications"
+                  label="Activer les notifications"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
 
               <v-col cols="12">
-                <v-switch v-model="settings.confirmBeforeDelete"
-                  label="Confirmer avant suppression d'un jeu" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.confirmBeforeDelete"
+                  label="Confirmer avant suppression d'un jeu"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
 
               <v-divider class="my-4"></v-divider>
@@ -40,14 +58,24 @@
                 <div class="d-flex align-center text-h6 mt-2 mb-1">
                   <span>Emplacements de recherche</span>
                   <v-spacer></v-spacer>
-                  <v-btn color="primary" variant="tonal" prepend-icon="mdi-folder-plus"
-                    @click="onAddLocation">
+                  <v-btn
+                    color="primary"
+                    variant="tonal"
+                    prepend-icon="mdi-folder-plus"
+                    @click="onAddLocation"
+                  >
                     Ajouter
                   </v-btn>
-                  <v-btn color="primary" class="ml-2" prepend-icon="mdi-folder-search"
-                    :disabled="settings.searchLocations.length === 0 || scan.scanning"
+                  <v-btn
+                    color="primary"
+                    class="ml-2"
+                    prepend-icon="mdi-folder-search"
+                    :disabled="
+                      settings.searchLocations.length === 0 || scan.scanning
+                    "
                     :loading="scan.scanning"
-                    @click="onScanNow">
+                    @click="onScanNow"
+                  >
                     Scanner maintenant
                   </v-btn>
                 </div>
@@ -60,9 +88,13 @@
                   >
                     <v-list-item-title>
                       {{ location }}
-                      <v-btn v-if="hoveredIndex === i"
-                        color="error" variant="text" class="ml-2"
-                        @click="onDeleteLocation(i)">
+                      <v-btn
+                        v-if="hoveredIndex === i"
+                        color="error"
+                        variant="text"
+                        class="ml-2"
+                        @click="onDeleteLocation(i)"
+                      >
                         Supprimer
                       </v-btn>
                     </v-list-item-title>
@@ -76,33 +108,62 @@
               </v-col>
 
               <!-- Mémoires de la recherche : deux listes, réinitialisables séparément -->
-              <v-col cols="12" v-if="settings.dismissedPaths.length > 0 || settings.ignoredPaths.length > 0">
-                <div v-if="settings.dismissedPaths.length > 0"
-                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4">
+              <v-col
+                cols="12"
+                v-if="
+                  settings.dismissedPaths.length > 0 ||
+                  settings.ignoredPaths.length > 0
+                "
+              >
+                <div
+                  v-if="settings.dismissedPaths.length > 0"
+                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4"
+                >
                   <v-icon size="18" class="mr-2">mdi-eye-off-outline</v-icon>
-                  <span>{{ settings.dismissedPaths.length }} jeu(x) écarté(s) lors des recherches</span>
-                  <v-btn size="small" variant="text" color="primary" class="ml-2"
-                    @click="onForget('dismissedPaths')">
+                  <span
+                    >{{ settings.dismissedPaths.length }} jeu(x) écarté(s) lors
+                    des recherches</span
+                  >
+                  <v-btn
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    class="ml-2"
+                    @click="onForget('dismissedPaths')"
+                  >
                     Réinitialiser
                   </v-btn>
                 </div>
-                <div v-if="settings.ignoredPaths.length > 0"
-                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4">
+                <div
+                  v-if="settings.ignoredPaths.length > 0"
+                  class="d-flex align-center text-body-2 text-medium-emphasis ml-4"
+                >
                   <v-icon size="18" class="mr-2">mdi-cancel</v-icon>
-                  <span>{{ settings.ignoredPaths.length }} dossier(s) exclu(s) définitivement</span>
-                  <v-btn size="small" variant="text" color="primary" class="ml-2"
-                    @click="onForget('ignoredPaths')">
+                  <span
+                    >{{ settings.ignoredPaths.length }} dossier(s) exclu(s)
+                    définitivement</span
+                  >
+                  <v-btn
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    class="ml-2"
+                    @click="onForget('ignoredPaths')"
+                  >
                     Réinitialiser
                   </v-btn>
                 </div>
               </v-col>
 
               <v-col cols="12">
-                <v-switch v-model="settings.autoScan"
+                <v-switch
+                  v-model="settings.autoScan"
                   :disabled="settings.searchLocations.length === 0"
-                  label="Scanner ces emplacements au démarrage" color="primary" hide-details></v-switch>
+                  label="Scanner ces emplacements au démarrage"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
-
             </v-row>
           </v-card-text>
         </v-card>
@@ -116,8 +177,12 @@
           <v-card-text>
             <v-row class="d-flex ml-4">
               <v-col cols="12">
-                <v-switch v-model="settings.enableDarkTheme"
-                  label="Activer le thème sombre" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.enableDarkTheme"
+                  label="Activer le thème sombre"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
             </v-row>
           </v-card-text>
@@ -131,20 +196,31 @@
           <v-divider></v-divider>
           <v-card-text>
             <v-row class="d-flex ml-4">
-
               <v-col cols="12">
-                <v-switch v-model="settings.enableAutoUpdate"
-                  label="Activer les mises à jour automatiques" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.enableAutoUpdate"
+                  label="Activer les mises à jour automatiques"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
 
               <v-col cols="12">
-                <v-switch v-model="settings.launchAtWindowsBoot"
-                  label="Lancer au démarrage de Windows" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.launchAtWindowsBoot"
+                  label="Lancer au démarrage de Windows"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
 
               <v-col cols="12">
-                <v-switch v-model="settings.minimizeToTray"
-                  label="Minimiser dans le tray au lieu de fermer" color="primary" hide-details></v-switch>
+                <v-switch
+                  v-model="settings.minimizeToTray"
+                  label="Minimiser dans le tray au lieu de fermer"
+                  color="primary"
+                  hide-details
+                ></v-switch>
               </v-col>
 
               <v-divider class="my-4"></v-divider>
@@ -160,22 +236,20 @@
                   density="comfortable"
                 ></v-select>
               </v-col>
-
             </v-row>
           </v-card-text>
         </v-card>
       </v-tabs-window-item>
-
     </v-tabs-window>
   </div>
 </template>
 
 <script lang="ts">
-import Settings from './settings.component.ts'
+  import Settings from './settings.component.ts';
 
-export default {
-  setup: Settings.setup,
-}
+  export default {
+    setup: Settings.setup,
+  };
 </script>
 
 <style scoped>

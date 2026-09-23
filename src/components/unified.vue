@@ -31,22 +31,24 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted } from 'vue';
-import { useNotification } from '../services/notification.service';
-import { initScan } from '../services/scan.service';
-import ScanDialog from './scan-dialog.vue';
+  import { defineComponent, onMounted } from 'vue';
+  import { useNotification } from '../services/notification.service';
+  import { initScan } from '../services/scan.service';
+  import ScanDialog from './scan-dialog.vue';
 
-export default defineComponent({
-  name: 'Unified',
-  components: { ScanDialog },
-  setup() {
-    const { snackbar, typeConfig, close, runAction } = useNotification();
+  export default defineComponent({
+    name: 'Unified',
+    components: { ScanDialog },
+    setup() {
+      const { snackbar, typeConfig, close, runAction } = useNotification();
 
-    // Abonnement unique aux évènements de scan du main process (progression
-    // et résultat du scan automatique au démarrage).
-    onMounted(() => { initScan() });
+      // Abonnement unique aux évènements de scan du main process (progression
+      // et résultat du scan automatique au démarrage).
+      onMounted(() => {
+        initScan();
+      });
 
-    return { snackbar, typeConfig, close, runAction };
-  },
-});
+      return { snackbar, typeConfig, close, runAction };
+    },
+  });
 </script>

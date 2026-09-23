@@ -1,4 +1,4 @@
-import { useNotification } from './notification.service'
+import { useNotification } from './notification.service';
 
 /**
  * Interactions avec le système d'exploitation, exposées au renderer via le pont
@@ -15,7 +15,7 @@ import { useNotification } from './notification.service'
  */
 export async function applyGameStartBehavior(): Promise<void> {
   try {
-    await window.ipcRenderer.applyGameStartBehavior()
+    await window.ipcRenderer.applyGameStartBehavior();
   } catch {
     // sans effet : la fenêtre reste simplement en place
   }
@@ -23,10 +23,10 @@ export async function applyGameStartBehavior(): Promise<void> {
 
 /** Ouvre l'explorateur sur le dossier du fichier, fichier sélectionné. */
 export async function revealInExplorer(target: string): Promise<void> {
-  const { notifyError } = useNotification()
+  const { notifyError } = useNotification();
   try {
-    await window.ipcRenderer.revealInExplorer(target)
+    await window.ipcRenderer.revealInExplorer(target);
   } catch (error) {
-    notifyError("Impossible d'ouvrir l'emplacement du fichier")
+    notifyError("Impossible d'ouvrir l'emplacement du fichier");
   }
 }

@@ -13,8 +13,14 @@
         <v-icon color="primary" class="mr-2">mdi-folder-search</v-icon>
         <span>Jeux détectés</span>
         <v-spacer></v-spacer>
-        <v-chip v-if="!scan.scanning && scan.entries.length > 0" size="small" variant="tonal">
-          {{ selectedCount }} / {{ scan.entries.length }} sélectionné{{ selectedCount > 1 ? 's' : '' }}
+        <v-chip
+          v-if="!scan.scanning && scan.entries.length > 0"
+          size="small"
+          variant="tonal"
+        >
+          {{ selectedCount }} / {{ scan.entries.length }} sélectionné{{
+            selectedCount > 1 ? 's' : ''
+          }}
         </v-chip>
       </v-card-title>
       <v-divider></v-divider>
@@ -37,15 +43,25 @@
         </div>
         <div class="text-caption text-medium-emphasis">
           {{ scan.progress.scanned }} / {{ scan.progress.total }} dossiers —
-          {{ scan.progress.found }} jeu{{ scan.progress.found > 1 ? 'x' : '' }} trouvé{{ scan.progress.found > 1 ? 's' : '' }}
+          {{ scan.progress.found }} jeu{{
+            scan.progress.found > 1 ? 'x' : ''
+          }}
+          trouvé{{ scan.progress.found > 1 ? 's' : '' }}
         </div>
 
-        <v-btn class="mt-4" variant="text" @click="onCancelScan">Annuler la recherche</v-btn>
+        <v-btn class="mt-4" variant="text" @click="onCancelScan"
+          >Annuler la recherche</v-btn
+        >
       </v-card-text>
 
       <!-- Aucun résultat -->
-      <v-card-text v-else-if="scan.entries.length === 0" class="py-8 text-center">
-        <v-icon size="48" color="medium-emphasis">mdi-check-circle-outline</v-icon>
+      <v-card-text
+        v-else-if="scan.entries.length === 0"
+        class="py-8 text-center"
+      >
+        <v-icon size="48" color="medium-emphasis"
+          >mdi-check-circle-outline</v-icon
+        >
         <div class="text-body-1 mt-3">Aucun nouveau jeu trouvé</div>
         <div class="text-caption text-medium-emphasis">
           Tous les jeux détectés sont déjà dans votre bibliothèque.
@@ -55,8 +71,8 @@
       <!-- Candidats -->
       <v-card-text v-else class="scan-results">
         <div class="text-caption text-medium-emphasis mb-2">
-          Les jeux décochés ne seront plus proposés lors des prochaines recherches.
-          Réversible depuis les paramètres.
+          Les jeux décochés ne seront plus proposés lors des prochaines
+          recherches. Réversible depuis les paramètres.
         </div>
         <v-list lines="two">
           <!-- Clé sur le dossier d'installation, unique par candidat : changer
@@ -67,7 +83,10 @@
             class="scan-entry"
           >
             <template #prepend>
-              <v-checkbox-btn v-model="entry.selected" color="primary"></v-checkbox-btn>
+              <v-checkbox-btn
+                v-model="entry.selected"
+                color="primary"
+              ></v-checkbox-btn>
               <v-img
                 v-if="entry.gameIcon"
                 :src="entry.gameIcon"
@@ -90,7 +109,9 @@
 
             <v-list-item-subtitle class="text-caption">
               {{ relativeExe(entry) }}
-              <span class="text-medium-emphasis"> — {{ entry.installDir }}</span>
+              <span class="text-medium-emphasis">
+                — {{ entry.installDir }}</span
+              >
             </v-list-item-subtitle>
 
             <template #append>
@@ -116,7 +137,12 @@
 
               <v-menu location="start">
                 <template #activator="{ props }">
-                  <v-btn icon="mdi-dots-vertical" variant="text" size="small" v-bind="props"></v-btn>
+                  <v-btn
+                    icon="mdi-dots-vertical"
+                    variant="text"
+                    size="small"
+                    v-bind="props"
+                  ></v-btn>
                 </template>
                 <v-list class="menu-list" density="compact">
                   <!-- Action fixe, en tête : vérifier le binaire dans l'explorateur
@@ -154,7 +180,11 @@
 
       <v-divider></v-divider>
       <v-card-actions>
-        <v-btn v-if="!scan.scanning && scan.entries.length > 0" variant="text" @click="onToggleAll">
+        <v-btn
+          v-if="!scan.scanning && scan.entries.length > 0"
+          variant="text"
+          @click="onToggleAll"
+        >
           {{ allSelected ? 'Tout décocher' : 'Tout cocher' }}
         </v-btn>
         <v-spacer></v-spacer>

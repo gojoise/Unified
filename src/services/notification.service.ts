@@ -18,11 +18,11 @@ interface NotificationState {
 
 // Singleton au niveau du module : tous les appels à useNotification() partagent le même état.
 // Cela garantit qu'une seule snackbar est affichée à la fois dans toute l'application.
-let notificationsEnabled = true
+let notificationsEnabled = true;
 
 /** Appelé par settings.component au chargement et à chaque changement du toggle. */
 export function setNotificationsEnabled(value: boolean) {
-  notificationsEnabled = value
+  notificationsEnabled = value;
 }
 
 const state = reactive<NotificationState>({
@@ -35,10 +35,10 @@ const state = reactive<NotificationState>({
 
 /** Couleur Vuetify et icône MDI associées à chaque type de notification. */
 const typeConfig: Record<NotificationType, { color: string; icon: string }> = {
-  info:    { color: 'info',    icon: 'mdi-information' },
+  info: { color: 'info', icon: 'mdi-information' },
   success: { color: 'success', icon: 'mdi-check-circle' },
   warning: { color: 'warning', icon: 'mdi-alert' },
-  error:   { color: 'error',   icon: 'mdi-alert-circle' },
+  error: { color: 'error', icon: 'mdi-alert-circle' },
 };
 
 /**
@@ -58,9 +58,9 @@ export function useNotification() {
     message: string,
     type: NotificationType = 'info',
     timeout = 4000,
-    action: NotificationAction | null = null,
+    action: NotificationAction | null = null
   ) => {
-    if (!notificationsEnabled) return
+    if (!notificationsEnabled) return;
     state.message = message;
     state.type = type;
     state.timeout = timeout;
@@ -84,9 +84,12 @@ export function useNotification() {
     notify,
     close,
     runAction,
-    notifyInfo:    (msg: string, timeout?: number) => notify(msg, 'info',    timeout),
-    notifySuccess: (msg: string, timeout?: number) => notify(msg, 'success', timeout),
-    notifyWarning: (msg: string, timeout?: number) => notify(msg, 'warning', timeout),
-    notifyError:   (msg: string, timeout?: number) => notify(msg, 'error',   timeout),
+    notifyInfo: (msg: string, timeout?: number) => notify(msg, 'info', timeout),
+    notifySuccess: (msg: string, timeout?: number) =>
+      notify(msg, 'success', timeout),
+    notifyWarning: (msg: string, timeout?: number) =>
+      notify(msg, 'warning', timeout),
+    notifyError: (msg: string, timeout?: number) =>
+      notify(msg, 'error', timeout),
   };
 }

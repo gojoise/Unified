@@ -62,7 +62,11 @@
         <!--Vignette de recherche semi-automatique-->
         <!-- Mise en avant quand la bibliothèque est vide : c'est le moyen le
              plus rapide de la remplir. -->
-        <v-col cols="auto" class="pa-3" :class="{ 'order-first': library.length === 0 }">
+        <v-col
+          cols="auto"
+          class="pa-3"
+          :class="{ 'order-first': library.length === 0 }"
+        >
           <v-card
             class="game-card add-game-card d-flex justify-center align-center flex-column"
             @click="onScanGames"
@@ -91,7 +95,11 @@
     <div class="settings-fab">
       <router-link to="/settings">
         <v-icon size="42" color="primary">mdi-cog</v-icon>
-        <v-tooltip activator="parent" location="top" text="Paramètres"></v-tooltip>
+        <v-tooltip
+          activator="parent"
+          location="top"
+          text="Paramètres"
+        ></v-tooltip>
       </router-link>
     </div>
 
@@ -102,11 +110,16 @@
           <v-icon color="error" class="mr-2">mdi-delete-alert</v-icon>
           Supprimer le jeu
         </v-card-title>
-        <v-card-text>Cette action est irréversible. Confirmer la suppression ?</v-card-text>
+        <v-card-text
+          >Cette action est irréversible. Confirmer la suppression
+          ?</v-card-text
+        >
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="onDeleteCancel">Annuler</v-btn>
-          <v-btn color="error" variant="tonal" @click="onDeleteConfirm">Supprimer</v-btn>
+          <v-btn color="error" variant="tonal" @click="onDeleteConfirm"
+            >Supprimer</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>

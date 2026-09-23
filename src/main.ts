@@ -46,8 +46,11 @@ app.use(router);
 
 initSettings().then(() => {
   app.mount('#app').$nextTick(() => {
-    window.ipcRenderer.on('main-process-message', (_event: any, message: any) => {
-      console.log(message);
-    });
+    window.ipcRenderer.on(
+      'main-process-message',
+      (_event: any, message: any) => {
+        console.log(message);
+      }
+    );
   });
 });
