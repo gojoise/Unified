@@ -1,5 +1,6 @@
 import { ref, onMounted } from 'vue';
 import { useLibrary } from '../services/library.service';
+import { useFavorites } from '../services/favorites.service';
 import { useScan } from '../services/scan.service';
 import { revealInExplorer } from '../services/shell.service';
 import { addLocation, useSettingsStore } from '../services/settings.service';
@@ -16,6 +17,7 @@ interface GameOption {
 export default {
   setup() {
     const { sortedLibrary, loading, load, add, launch, remove } = useLibrary();
+    const { isFavorite, toggle: toggleFavorite } = useFavorites();
     const { runScan } = useScan();
     const settings = useSettingsStore();
 
@@ -81,6 +83,8 @@ export default {
       loadingGames: loading,
       options,
       deleteDialog,
+      isFavorite,
+      onToggleFavorite: toggleFavorite,
       onAddGame: add,
       onScanGames,
       onLaunchGame: launch,

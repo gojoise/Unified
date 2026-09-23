@@ -71,7 +71,8 @@
 | Ajout / suppression | Sélection d'un `.exe`, avec dialogue de confirmation à la suppression |
 | Reconnaissance du nom | Déduction automatique du titre depuis l'exécutable |
 | Lancement | Démarrage du jeu directement depuis la grille |
-| Tri alphabétique | Bibliothèque ordonnée par nom |
+| Favoris | Étoile sur la vignette, jeux épinglés en tête de grille |
+| Tri alphabétique | Bibliothèque ordonnée par nom, favoris d'abord |
 | Icône automatique | Icône extraite du `.exe` au moment de l'ajout |
 | Dernier lancement | Date du dernier démarrage enregistrée par jeu |
 
@@ -175,7 +176,7 @@ Unified est une application **Electron + Vue 3** répartie sur deux processus is
 ```
 Unified/
 ├── electron/                 # Processus principal (backend)
-│   ├── main.ts               # BrowserWindow, raccourcis globaux, handlers IPC
+│   ├── main.ts               # BrowserWindow, raccourcis clavier, handlers IPC
 │   ├── libraryManager.ts     # CRUD de la bibliothèque de jeux
 │   ├── gameScanner.ts       # Détection semi-automatique (scan des emplacements)
 │   ├── settings.ts           # Lecture / écriture des paramètres
@@ -224,7 +225,7 @@ Les données sont conservées en clair dans le dossier utilisateur d'Electron :
 
 | Fichier | Contenu |
 | --- | --- |
-| `user-library.json` | Liste des jeux, chemins, icônes, dates de lancement |
+| `user-library.json` | Liste des jeux, chemins, icônes, dates de lancement, favoris |
 | `settings.json` | Préférences, emplacements de recherche, jeux écartés et dossiers exclus |
 
 Les deux fichiers se trouvent dans :
@@ -246,7 +247,7 @@ Les deux fichiers se trouvent dans :
 - [ ] Tri par critères multiples (nom, dernier lancement, temps de jeu, date d'ajout)
 - [ ] Vue liste vs vue grille (toggle)
 - [ ] Zoom sur la grille (taille des cartes réglable)
-- [ ] Jeux favoris / épinglés en haut
+- [x] Jeux favoris / épinglés en haut
 - [x] Option pour ouvrir le dossier du jeu
 
 ### 🏷 Métadonnées des jeux
@@ -263,6 +264,7 @@ Les deux fichiers se trouvent dans :
 - [ ] Détection automatique des jeux
 - [ ] Reconnaître un emplacement pointé trop haut (dossier contenant des dossiers de jeux)
 - [ ] Surveillance des emplacements (détection sans relancer l'application)
+- [ ] Reconnaissance des jeux via émulateur (ROMs et émulateur associé)
 
 ### ⚙️ Paramètres
 

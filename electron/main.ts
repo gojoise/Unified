@@ -1,6 +1,6 @@
-import { app, BrowserWindow,globalShortcut, Tray, Menu,shell,ipcMain } from 'electron'
+import { app, BrowserWindow, Tray, Menu,shell,ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
-import { addGame,addGames,deleteGame,extractExeIcon,launchGame,loadLibrary,revealInExplorer } from './libraryManager'
+import { addGame,addGames,deleteGame,extractExeIcon,launchGame,loadLibrary,revealInExplorer,setGameFavorite } from './libraryManager'
 import { loadSettings, saveSettingValue, addSearchLocation, getSettingValue } from './settings'
 import { scanLocations, abortScan } from './gameScanner'
 import { loadWindowState, trackWindowState, MIN_WINDOW_SIZE } from './windowState'
@@ -17,6 +17,9 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+
+/** Documentation en ligne, ouverte par F1 et par le menu du tray. */
+const WIKI_URL = "https://github.com/gojoise/Unified/wiki"
 
 let win: BrowserWindow | null
 // Référence conservée au niveau module : un Tray collecté par le GC disparaît de
@@ -97,6 +100,7 @@ function createWindow() {
     scheduleAutoScan()
   })
   trackWindowState(win)
+  registerWindowShortcuts(win)
 
   // « Minimiser dans le tray au lieu de fermer » : le bouton X masque la fenêtre
   // au lieu de terminer l'application. Les sorties explicites (menu du tray,
@@ -125,7 +129,7 @@ function createWindow() {
     {
       label: "Ouvrir le wiki",
       click: () => {
-        shell.openExternal("https://github.com/gojoise/Unified/wiki"); // Ouvre l'url dans le navigateur par défaut
+        shell.openExternal(WIKI_URL); // Ouvre l'url dans le navigateur par défaut
       },
     },
     {
@@ -137,6 +141,43 @@ function createWindow() {
   // Clic simple sur l'icône : raccourci attendu pour ressortir du tray.
   tray.on('click', showWindow);
   win.removeMenu();
+}
+
+/**
+ * Raccourcis de l'application :
+ *   Ctrl+I  — DevTools
+ *   F1      — Wiki GitHub
+ *   Ctrl+Q  — Quitter
+ *
+ * Volontairement locaux à la fenêtre plutôt que globaux (globalShortcut) : un
+ * raccourci global est capté par Unified même quand il n'a pas le focus, ce qui
+ * confisquerait F1 à toutes les autres applications et couperait Ctrl+Q dans le
+ * jeu qu'on vient de lancer. Ici, rien n'est intercepté hors du launcher.
+ *
+ * La fenêtre n'ayant pas de menu (win.removeMenu), on écoute les frappes du
+ * renderer plutôt que de passer par des accélérateurs de menu.
+ */
+function registerWindowShortcuts(window: BrowserWindow) {
+  window.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+
+    // meta couvre Cmd sur macOS, comme le faisait « CommandOrControl ».
+    const modifier = input.control || input.meta
+    const key = input.key.toLowerCase()
+
+    if (modifier && key === 'i') {
+      window.webContents.openDevTools()
+    } else if (key === 'f1') {
+      shell.openExternal(WIKI_URL)
+    } else if (modifier && key === 'q') {
+      quitApp()
+    } else {
+      // Frappe ordinaire : elle doit continuer sa route jusqu'au renderer.
+      return
+    }
+
+    event.preventDefault()
+  })
 }
 
 // Sortie déclenchée ailleurs (fermeture de session Windows, app.quit() d'Electron) :
@@ -163,19 +204,7 @@ app.on('activate', () => {
   }
 })
 
-// Raccourcis globaux :
-//   Ctrl+I  — DevTools
-//   F1      — Wiki GitHub
-//   Ctrl+Q  — Quitter
-app.whenReady().then(() => {
-  globalShortcut.register("CommandOrControl+I", () => {
-    win?.webContents.openDevTools();
-  });
-  globalShortcut.register("F1", () => {
-    shell.openExternal("https://github.com/gojoise/Unified/wiki");
-  });
-  globalShortcut.register("CommandOrControl+Q", quitApp);
-}).then(createWindow)
+app.whenReady().then(createWindow)
 
 /** Délai avant le scan de démarrage : la bibliothèque doit s'afficher en premier. */
 const AUTO_SCAN_DELAY = 2000
@@ -214,6 +243,9 @@ ipcMain.handle('launch-game', (_event, path: string) => {
 });
 ipcMain.handle('delete-game', (_event, path: string) => {
   return deleteGame(path);
+})
+ipcMain.handle('set-game-favorite', (_event, path: string, favorite: boolean) => {
+  return setGameFavorite(path, favorite);
 })
 /** Applique le comportement configuré après qu'un jeu a été lancé. */
 ipcMain.handle('apply-game-start-behavior', () => {

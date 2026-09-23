@@ -5,11 +5,40 @@
       <v-row dense no-gutters>
         <v-col
           v-for="game in library"
-          :key="game.title"
+          :key="game.path"
           cols="auto"
           class="pa-3"
         >
           <v-card class="game-card">
+            <!-- Étoile de favori : grisée et révélée au survol, jaune et
+                 toujours visible une fois le jeu épinglé -->
+            <v-btn
+              class="favorite-star"
+              :class="{ 'is-favorite': isFavorite(game) }"
+              :color="isFavorite(game) ? 'amber' : 'grey'"
+              :aria-label="
+                isFavorite(game) ? 'Retirer des favoris' : 'Ajouter aux favoris'
+              "
+              icon
+              variant="text"
+              density="comfortable"
+              size="small"
+              @click="onToggleFavorite(game)"
+            >
+              <v-icon>{{
+                isFavorite(game) ? 'mdi-star' : 'mdi-star-outline'
+              }}</v-icon>
+              <v-tooltip
+                activator="parent"
+                location="top"
+                :text="
+                  isFavorite(game)
+                    ? 'Retirer des favoris'
+                    : 'Ajouter aux favoris'
+                "
+              ></v-tooltip>
+            </v-btn>
+
             <!-- Icône du jeu -->
             <div class="game-icon-wrapper">
               <v-img

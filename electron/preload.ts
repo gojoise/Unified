@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   loadLibrary: () => ipcRenderer.invoke('load-library'),
   /** Lance l'exécutable du jeu via shell.openPath. */
   launchGame: (path: string) => ipcRenderer.invoke('launch-game', path),
+  /** Épingle ou désépingle le jeu identifié par son chemin d'accès. */
+  setGameFavorite: (path: string, favorite: boolean) => ipcRenderer.invoke('set-game-favorite', path, favorite),
   /** Applique le paramètre « Comportement au lancement d'un jeu » (rien / réduire / tray / quitter). */
   applyGameStartBehavior: () => ipcRenderer.invoke('apply-game-start-behavior'),
 

@@ -15,6 +15,7 @@
 
 /* Carte du jeu */
 .game-card {
+  position: relative; /* Référence de l'étoile de favori */
   width: 200px;
   height: 300px; /* Ajuste la hauteur */
   display: flex;
@@ -31,6 +32,27 @@
 .game-card:hover {
   transform: scale(1.05);
   box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Étoile de favori, coin haut-droit de la vignette.
+   Jeu non favori : étoile grise, révélée au survol de la carte (et au focus
+   clavier, sans quoi elle serait inatteignable sans souris).
+   Jeu favori : étoile jaune, visible en permanence — c'est ce qui distingue
+   une vignette épinglée au premier coup d'œil. */
+.favorite-star {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.game-card:hover .favorite-star,
+.favorite-star:hover,
+.favorite-star:focus-visible,
+.favorite-star.is-favorite {
+  opacity: 1;
 }
 
 /* Zone d'icône du jeu */

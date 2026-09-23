@@ -9,6 +9,8 @@ export interface GameEntry {
     path: string;
     gameIcon: string;
     lastLaunched: string | null;
+    /** Épinglé : le jeu est placé en tête de la grille. */
+    favorite: boolean;
 }
 
 const userDataPath = app.getPath('userData');
@@ -59,6 +61,7 @@ export async function createGameEntry(
         path: exePath,
         gameIcon,
         lastLaunched: null as string | null,
+        favorite: false,
     };
 }
 
@@ -125,6 +128,19 @@ export function deleteGame(gamePath: string): Promise<void> {
             reject(error);
         }
     });
+}
+
+/**
+ * Épingle ou désépingle un jeu. Sans effet si le chemin n'est plus dans la
+ * bibliothèque : le jeu a été supprimé entre-temps, il n'y a rien à persister.
+ */
+export function setGameFavorite(gamePath: string, favorite: boolean): void {
+    const lib = loadLibrary();
+    const game = lib.find((element) => element.path === gamePath);
+    if (!game) return;
+
+    game.favorite = favorite;
+    saveLibrary(lib);
 }
 
 /**

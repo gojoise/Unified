@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { useNotification } from './notification.service';
 import { applyGameStartBehavior } from './shell.service';
+import { compareByFavorite } from './favorites.service';
 
 // Wrappers renderer autour des méthodes IPC exposées par electron/preload.ts.
 // Ces fonctions sont de simples relais vers window.ipcRenderer ; la logique métier
@@ -84,9 +85,12 @@ export function useLibrary() {
     }
   };
 
+  // Favoris en tête, puis ordre alphabétique à l'intérieur de chaque groupe.
   const sortedLibrary = computed(() =>
-    [...library.value].sort((a, b) =>
-      a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    [...library.value].sort(
+      (a, b) =>
+        compareByFavorite(a, b) ||
+        a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
     )
   );
 
