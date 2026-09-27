@@ -68,13 +68,14 @@
 | Fonctionnalité | Description |
 | --- | --- |
 | Visualisation | Grille de toutes vos entrées de bibliothèque |
-| Ajout / suppression | Sélection d'un `.exe`, avec dialogue de confirmation à la suppression |
+| Ajout / suppression | Sélection d'un `.exe`, avec dialogue de confirmation optionnel à la suppression |
 | Reconnaissance du nom | Déduction automatique du titre depuis l'exécutable |
 | Lancement | Démarrage du jeu directement depuis la grille |
 | Favoris | Étoile sur la vignette, jeux épinglés en tête de grille |
 | Tri alphabétique | Bibliothèque ordonnée par nom, favoris d'abord |
 | Icône automatique | Icône extraite du `.exe` au moment de l'ajout |
 | Dernier lancement | Date du dernier démarrage enregistrée par jeu |
+| Voir le dossier | Ouverture de l'explorateur sur l'exécutable, depuis le menu ⋮ de la vignette |
 
 ### 🔍 Détection des jeux
 
@@ -103,11 +104,38 @@ Quatre façons de lancer une recherche :
 | Jeux écartés | Candidats décochés à la validation | Le dossier n'est plus proposé |
 | Dossiers exclus | Action « Ne plus proposer » du menu ⋮ | Le dossier n'est plus proposé |
 
+### 🪟 Fenêtre
+
+| Comportement | Détail |
+| --- | --- |
+| Géométrie mémorisée | Taille, position et état maximisé repris d'une session à l'autre |
+| Garde-fou d'affichage | La position n'est restaurée que si la fenêtre retombe sur un écran branché |
+| Dimensions | 1280 × 720 au premier lancement, minimum 960 × 540 |
+| Barre système | Icône de notification avec « Ouvrir Unified », « Ouvrir le wiki » et « Quitter » |
+| Au lancement d'un jeu | Ne rien faire, réduire, fermer dans le tray ou quitter — au choix dans les paramètres |
+| Instance unique | Relancer Unified ramène la fenêtre existante au lieu d'en ouvrir une seconde |
+
+### ⌨️ Raccourcis clavier
+
+Actifs uniquement lorsque la fenêtre d'Unified a le focus — rien n'est capté au niveau du système.
+
+| Raccourci | Action |
+| --- | --- |
+| `Ctrl` + `I` | Ouvrir les outils de développement |
+| `F1` | Ouvrir le wiki GitHub |
+| `Ctrl` + `Q` | Quitter l'application |
+
 ### ⚙️ Paramètres
 
-- Menu de paramètres dédié, accessible depuis la bibliothèque
-- Onglets thématiques : **Général**, **Apparence**, **Système**
-- Persistance automatique des préférences
+Menu dédié accessible depuis la bibliothèque, réparti en trois onglets. Chaque changement est persisté immédiatement.
+
+| Onglet | Paramètres |
+| --- | --- |
+| **Général** | Notifications, confirmation avant suppression, emplacements de recherche (+ « Scanner maintenant »), scan au démarrage, réinitialisation des mémoires de recherche |
+| **Apparence** | Thème sombre |
+| **Système** | Mises à jour automatiques, lancement au démarrage de Windows, minimisation dans le tray, comportement au lancement d'un jeu |
+
+> ⚠️ Le thème sombre, les mises à jour automatiques et le lancement au démarrage de Windows sont présents dans l'interface et persistés, mais pas encore appliqués — voir la [roadmap](#-roadmap).
 
 ### 🔔 Notifications
 
@@ -177,18 +205,22 @@ Unified est une application **Electron + Vue 3** répartie sur deux processus is
 Unified/
 ├── electron/                 # Processus principal (backend)
 │   ├── main.ts               # BrowserWindow, raccourcis clavier, handlers IPC
-│   ├── libraryManager.ts     # CRUD de la bibliothèque de jeux
-│   ├── gameScanner.ts       # Détection semi-automatique (scan des emplacements)
+│   ├── libraryManager.ts     # CRUD de la bibliothèque, détection du titre
+│   ├── gameScanner.ts        # Détection semi-automatique (scan des emplacements)
 │   ├── settings.ts           # Lecture / écriture des paramètres
-│   └── preload.ts            # Contrat d'API exposé au renderer (window.electronAPI)
+│   ├── windowState.ts        # Mémorisation de la géométrie de la fenêtre
+│   └── preload.ts            # Contrat d'API exposé au renderer (window.ipcRenderer)
 │
 ├── src/                      # Processus de rendu (frontend Vue)
 │   ├── main.ts               # Bootstrap Vue + Vuetify + Vue Router
-│   ├── components/
+│   ├── components/           # Un .vue par écran, sa logique dans le .component.ts voisin
 │   │   ├── unified.vue       # Racine <v-app> avec <router-view>
 │   │   ├── library.vue       # Grille de jeux
+│   │   ├── scan-dialog.vue   # Validation des candidats détectés
 │   │   └── settings.vue      # Paramètres par onglets
-│   └── services/             # Composables (useLibrary, useSettings)
+│   ├── services/             # Composables (library, favorites, scan, settings, notification, shell)
+│   ├── types/                # Types partagés du renderer (scan, paramètres)
+│   └── assets/               # Feuilles de style par écran
 │
 ├── public/                   # Ressources statiques (logo, icônes)
 └── electron-builder.json5    # Configuration d'empaquetage
@@ -199,9 +231,9 @@ Unified/
 ```
 Composant Vue
      ↓
-Composable (useLibrary / useSettings)
+Composable (useLibrary / useFavorites / useSettings…)
      ↓
-window.electronAPI.invoke(...)
+window.ipcRenderer.<méthode>(...)      (pont déclaré dans preload.ts)
      ↓  IPC
 Processus principal
      ↓
@@ -212,7 +244,7 @@ Le retour suit le chemin inverse : le processus principal émet sur l'IPC, le co
 
 ### Contraintes techniques
 
-- **Isolation du contexte activée** : toute communication renderer ↔ main passe obligatoirement par le pont `preload`
+- **Isolation du contexte activée** : toute communication renderer ↔ main passe obligatoirement par le pont `preload` (`window.ipcRenderer`)
 - **TypeScript strict** sur l'ensemble du projet
 - **Vuetify 3 exclusivement** pour l'interface — pas de Tailwind ni de framework CSS additionnel
 - Routes : `/` (bibliothèque) et `/settings` (paramètres)
@@ -227,8 +259,9 @@ Les données sont conservées en clair dans le dossier utilisateur d'Electron :
 | --- | --- |
 | `user-library.json` | Liste des jeux, chemins, icônes, dates de lancement, favoris |
 | `settings.json` | Préférences, emplacements de recherche, jeux écartés et dossiers exclus |
+| `window-state.json` | Taille, position et état maximisé de la fenêtre |
 
-Les deux fichiers se trouvent dans :
+Ces fichiers se trouvent dans :
 
 ```
 %APPDATA%\Unified\
@@ -289,10 +322,19 @@ Les deux fichiers se trouvent dans :
 
 ### `0.1.0` — Septembre 2026
 
+_Version en cours de développement._
+
 - Bibliothèque de jeux : ajout, suppression, lancement, tri alphabétique
+- Jeux favoris épinglés en tête de grille
+- Action « Voir le dossier » depuis le menu de la vignette
+- Détection semi-automatique : scan des emplacements configurés, validation avant ajout, mémoire des refus
+- Détection du titre par manifeste Steam / GOG / Xbox, avec repli sur l'arborescence
 - Extraction automatique de l'icône depuis le `.exe`
 - Enregistrement de la date de dernier lancement
 - Menu de paramètres par onglets
+- Réduction dans la barre système et comportement configurable au lancement d'un jeu
+- Mémorisation de la taille, de la position et de l'état maximisé de la fenêtre
+- Raccourcis clavier limités à la fenêtre de l'application
 - Service de notifications global
 
 ---
